@@ -122,6 +122,7 @@ func addJobValidFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
 func addPredicateFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
 	// if node not meet the task require, the task will be failed. so need to intercept in advance
 	ssn.AddPredicateFn(xp.Name(), func(taskInfo *api.TaskInfo, nodeInfo *api.NodeInfo) ([]*api.Status, error) {
+		predicateStatus, err := xp.Scheduler.NodePredicate(taskInfo, nodeInfo)
 		if err != nil {
 			xp.Scheduler.Jobs[taskInfo.Job].Lock()
 			xp.Scheduler.Jobs[taskInfo.Job].Reason[err.Error()] += nodeInfo.Name + " "
@@ -129,4 +130,127 @@ func addPredicateFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
 		}
 		return predicateStatus, err
 	})
+}
+
+func addBatchNodeOrderFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+	ssn.AddBatchNodeOrderFn(xp.Name(), func(task *api.TaskInfo, nodes []*api.NodeInfo) (map[string]float64, error) {
+		score, err := xp.Scheduler.BatchNodeOrderFn(task, nodes)
+		if err != nil {
+			if setErr := xp.Scheduler.SetJobPendingReason(ssn.Jobs[task.Job], err.Error()); setErr != nil {
+				klog.V(util.LogErrorLevel).Infof("%s setJobFailed err:%s.", PluginName, util.SafePrint(setErr))
+			}
+		}
+		if vcJob, ok := xp.Scheduler.Jobs[task.Job]; ok && vcJob.JobReadyTag == false {
+			if _, exist := xp.Scheduler.DeleteJobInfos[task.Job]; !exist {
+				xp.Scheduler.DeleteJobInfos[task.Job] = ssn.Jobs[task.Job]
+				delete(ssn.Jobs, task.Job)
+			}
+		}
+		return score, nil
+	})
+}
+
+func addEventHandler(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+	// Register event handlers to update task info in PodLister & nodeMap
+	// for support Concurrency
+	ssn.AddEventHandler(&framwork.EventHandler{
+		AllocateFunc: func(event *framwork.Event) {
+			if event == nil {
+				klog.V(util.LogErrorLevel).Infof("AllocateFunc event nil.")
+				return
+			}
+			xp.Scheduler.XPUAllocateFunc(event.Task, ssn)
+		},
+		DeallocateFunc: func(event *framwork.Event) {
+			if event == nil {
+				klog.V(util.LogErrorLevel).Infof("DeallocateFunc event nil.")
+				return
+			}
+			xp.Scheduler.XPUDeallocateFunc(event.Task)
+		},
+	})
+}
+
+func addJobReadyFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+	ssn.AddJobReadyFn(xp.Name(), func(obj interface{}) bool {
+		ji, ok := obj.(*api.JobInfo)
+		if !ok {
+			klog.V(util.LogErrorLevel).Info("obj assertion failed.")
+			return false
+		}
+		job, ok := xp.Scheduler.Jobs[ji.UID]
+		if !ok {
+			return true
+		}
+		return job.JobReadyTag
+	})
+}
+
+func (xp *huaweiXPUPlugin) OnSessionOpen(ssn *framwork.Session) {
+	klog.V(util.LogDebugLevel).Infof("enter %s OnSessionOpen.", PluginName)
+	defer klog.V(util.LogDebugLevel).Infof("leave %s OnSessionOpen.", PluginName)
+	if xp == nil || ssn == nil {
+		klog.V(util.LogErrorLevel).Infof("OnSessionOpen: %s.", util.ArgumentError)
+		return
+	}
+	getCommonConfig(xp.Arguments)
+	getNodeBandwidthConf(xp.Arguments)
+	// Init xpu plugin and nodes.
+	if err := xp.Scheduler.InitXPUSession(ssn); err != nil {
+		klog.V(util.LogErrorLevel).Infof("InitXPUSession: %s, xpu plugin will not be initialized.", err)
+		return
+	}
+
+	addJobValidFn(ssn, xp)
+	addPredicateFn(ssn, xp)
+	addBatchNodeOrderFn(ssn, xp)
+	addEventHandler(ssn, xp)
+	addJobReadyFn(ssn, xp)
+}
+
+func (xp *huaweiXPUPlugin) OnSessionClose(ssn *framwork.Session) {
+	klog.V(util.LogDebugLevel).Infof("enter %s OnSessionClose.", PluginName)
+	defer klog.V(util.LogDebugLevel).Infof("leave %s OnSessionClose.", PluginName)
+	if xp == nil || ssn == nil {
+		klog.V(util.LogErrorLevel).Infof("OnSessionClose failed: %s.", util.ArgumentError)
+		return
+	}
+	if ssn.Jobs == nil && len(xp.Scheduler.DeleteJobInfos) != 0 {
+		ssn.Jobs = make(map[api.JobID]*api.JobInfo)
+	}
+	// 1. Record job's unscheduled reason;
+	// 2. Update job statue;
+	// 3. Handle other post-dispatch issues.
+	for _, job := range ssn.Jobs {
+		// deal pending job
+		if job.PodGroup.Status.Phase == util.PodGroupInqueue ||
+			job.PodGroup.Status.Phase == util.PodGroupPending {
+			// if all nodes not meet job require failed
+			xp.Scheduler.SetJobPendReasonByNodesCase(job)
+		}
+		if len(job.PodGroup.Annotations) != 0 && job.PodGroup.Annotations[util.PodDeleteTimes] == util.TagOfPodPending {
+			xp.Scheduler.UpdatePodGroupPendingReason(job, util.JobRestartReason)
+		}
+	}
+	for jobId, jobInfo := range xp.Scheduler.DeleteJobInfos {
+		ssn.Jobs[jobId] = jobInfo
+	}
+}
+
+// HandlerCreate Huawei XPU scheduler plugin start by frame.
+func HandlerCreate() *plugin.ScheduleHandler {
+	sh := &plugin.ScheduleHandler{
+		XPUPlugins:     map[string]plugin.XPUBuilder{},
+		XPUDevices:     map[string]map[int]*common.XPUDevice{},
+		Jobs:           map[api.JobID]*plugin.SchedulerJob{},
+		DeleteJobInfos: map[api.JobID]*api.JobInfo{},
+		SessionID:      "",
+		Mutex:          &sync.Mutex{},
+	}
+
+	// Register new xpu scheduler strategy.
+	sh.RegisterXPUScheduler(util.GPUPluginName, xpu.GetGPUPlugin)
+	sh.RegisterXPUScheduler(util.NPUPluginName, xpu.GetNPUPlugin)
+	klog.V(util.LogDebugLevel).Infof("HandlerCreate %#v.", sh.XPUPlugins)
+	return sh
 }
