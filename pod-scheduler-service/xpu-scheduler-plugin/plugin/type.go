@@ -30,7 +30,7 @@ type ScheduleHandler struct {
 	XPUPlugins     map[string]XPUBuilder
 	XPUDevices     map[string]map[int]*common.XPUDevice
 	Jobs           map[api.JobID]*SchedulerJob
-	DeleteJobInfos map[api.JobID]*JobInfo
+	DeleteJobInfos map[api.JobID]*api.JobInfo
 	SessionID      types.UID
 	Nodes          []*api.NodeInfo
 	*sync.Mutex
