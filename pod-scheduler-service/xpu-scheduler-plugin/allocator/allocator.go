@@ -1,10 +1,7 @@
 package allocator
 
 import (
-	"errors"
-
-	"huawei.com/xpu-exporter/common/utils"
-	"k8s.io/klog/v2"
+	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/util"
 )
 
 type nodeAssignment [][]int
@@ -25,7 +22,7 @@ func Allocate(nodes []NodeResource, podRequests []PodCardRequest, reqXPUInterBan
 		if !valid {
 			continue
 		}
-		if len(reqXPUInterBandwidth) != 0 && (len(utils.XPUTopologyNodeBandwidth) == 0 || !varifyInterBandwidth(allocation, reqXPUInterBandwidth)) {
+		if len(reqXPUInterBandwidth) != 0 && (len(util.XPUTopologyNodeBandwidth) == 0 || !varifyInterBandwidth(allocation, reqXPUInterBandwidth)) {
 			continue
 		}
 
@@ -126,13 +123,13 @@ func varifyInterBandwidth(allocation []nodeAllocation, reqXPUInterBandwidth map[
 			continue
 		}
 		nodei := allocation[i].nodeResource.NodeName
-		_, ok1 := utils.XPUTopologyNodeBandwidth[nodei]
+		_, ok1 := util.XPUTopologyNodeBandwidth[nodei]
 		for j := i + 1; j < len(allocation); j++ {
 			nodej := allocation[j].nodeResource.NodeName
-			_, ok2 := utils.XPUTopologyNodeBandwidth[nodej]
+			_, ok2 := util.XPUTopologyNodeBandwidth[nodej]
 			nodeBandwidth := 0
 			if ok1 && ok2 {
-				nodeBandwidth = utils.XPUTopologyNodeBandwidth[nodei][nodej]
+				nodeBandwidth = util.XPUTopologyNodeBandwidth[nodei][nodej]
 			}
 			if !varifyPodInterBandwidth(allocation[i].podRequest, allocation[j].podRequest, nodeBandwidth, reqXPUInterBandwidth) {
 				return false
