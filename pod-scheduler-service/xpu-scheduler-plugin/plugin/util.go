@@ -235,7 +235,103 @@ func GetXPUDevicesFromTopologyScheduleResult(sJobs map[api.JobID]*SchedulerJob) 
 	inUseDevicesOfTopology := make(map[string]map[int]struct{})
 	for _, v := range sJobs {
 		for _, x := range v.TopologyScheduleResult {
-
+			if _, ok := inUseDevicesOfTopology[x.NodeName]; !ok {
+				inUseDevicesOfTopology[x.NodeName] = make(map[int]struct{})
+			}
+			for _, y := range x.AllocateXPUs {
+				inUseDevicesOfTopology[x.NodeName][y] = struct{}{}
+			}
 		}
 	}
+	return inUseDevicesOfTopology
+}
+
+// getContainerDevices get container device info
+func getContainerDevices(allocateXPUs []int, xpuDevices map[int]*common.XPUDevice) (ContainerDevices, error) {
+	cds := ContainerDevices{}
+	for _, v := range allocateXPUs {
+		xpuDevice, ok := xpuDevices[v]
+		if !ok {
+			return nil, fmt.Errorf("getContainerDevices failed, XPU %d does not exist on the node", v)
+		}
+		cd := common.ContainerDevice{
+			Index:      xpuDevice.Index,
+			Id:         xpuDevice.Id,
+			Type:       xpuDevice.Type,
+			UsedMemory: xpuDevice.Memory,
+			UsedCores:  util.Base100,
+		}
+		cds = append(cds, cd)
+	}
+	return cds, nil
+}
+
+// GetXPUResourceFromTaskInfo for get xpu resource info from task info
+func GetXPUResourceFromTaskInfo(task *api.TaskInfo, xpuName string) *util.TaskResource {
+	taskResource := &util.TaskResource{
+		ReqXPUName:          "",
+		ReqXPUNum:           0,
+		ReqXPUType:          "",
+		ReqXPUCores:         0,
+		ReqXPUMem:           0,
+		ReqXPUMemPercentage: 0,
+	}
+	xpuCoreName, xpuMemName, xpuTypeName := "", "", ""
+	if xpuName == util.VGPUName {
+		xpuCoreName, xpuMemName, xpuTypeName = util.VGPUCore, util.VGPUMemory, util.VGPUType
+	} else {
+		xpuCoreName, xpuMemName, xpuTypeName = util.VGPUCore, util.VGPUMemory, util.VGPUType
+	}
+	for _, container := range task.Pod.Spec.Containers {
+		containerResource := GetXPUResourceFromContainer(&container, xpuName, xpuCoreName, xpuMemName, xpuTypeName)
+		if containerResource.ReqXPUNum == 0 {
+			continue
+		}
+		taskResource.ReqXPUNum += containerResource.ReqXPUNum
+		taskResource.ReqXPUCores += containerResource.ReqXPUCores * containerResource.ReqXPUNum
+		taskResource.ReqXPUMem += containerResource.ReqXPUMem * containerResource.ReqXPUNum
+		taskResource.ReqXPUMemPercentage += containerResource.ReqXPUMemPercentage * containerResource.ReqXPUNum
+		// all the containers' xpu device type of the pod must be the same
+		if taskResource.ReqXPUType == "" {
+			taskResource.ReqXPUType = containerResource.ReqXPUType
+		}
+	}
+	return taskResource
+}
+
+// GetXPUResourceFromContainer for get xpu resource info from container
+func GetXPUResourceFromContainer(container *v1.Container, xpuName string, xpuCoreName string,
+	xpuMemName string, xpuTypeName string) util.ContainerResource {
+	containerResource := util.ContainerResource{
+		ReqXPUName:          xpuName,
+		ReqXPUNum:           0,
+		ReqXPUType:          "",
+		ReqXPUCores:         0,
+		ReqXPUMem:           0,
+		ReqXPUMemPercentage: 0,
+	}
+	vxpuNum := util.GetVXPUResource(container, xpuName)
+	vxpuCore := util.GetVXPUResource(container, xpuCoreName)
+	vxpuMem := util.GetVXPUResource(container, xpuMemName) * util.Base1024
+	if vxpuNum == 0 {
+		klog.V(util.LogDebugLevel).Infof("Container %s do not apply xpu device, resources limit: %v",
+			container.Name, container.Resources.Limits)
+		return containerResource
+	}
+	containerResource.ReqXPUNum = vxpuNum
+	if vxpuCore == 0 && vxpuMem == 0 {
+		// if num > 0, core = 0, memory = 0, apply the entire card.
+		containerResource.ReqXPUCores = util.Base100
+		containerResource.ReqXPUMemPercentage = util.Base100
+	} else if vxpuCore != 0 && vxpuMem == 0 {
+		// if num > 0, core > 0, memory = 0, apply all the memory of the card.
+		containerResource.ReqXPUCores = vxpuCore
+		containerResource.ReqXPUMemPercentage = util.Base100
+	} else {
+		// if num > 0, core > 0, memory > 0, normal apply the card.
+		containerResource.ReqXPUCores = vxpuCore
+		containerResource.ReqXPUMemPercentage = vxpuMem
+	}
+	containerResource.ReqXPUType = util.GetXPUType(container, xpuTypeName)
+	return containerResource
 }
