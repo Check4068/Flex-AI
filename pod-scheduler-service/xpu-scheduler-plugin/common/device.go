@@ -12,7 +12,7 @@ type XPUDevice struct {
 	UsedCores  int
 	UsedMemory uint64
 	UsedVids   uint
-	Inuse      bool
+	InUse      bool
 	Numa       int
 }
 

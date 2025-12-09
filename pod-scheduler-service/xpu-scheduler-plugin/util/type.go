@@ -106,8 +106,8 @@ const (
 	VNPUCore = "huawei.com/vnpu-cores"
 	// VNPUMemory for vnpu memory
 	VNPUMemory = "huawei.com/vnpu-memory.1Gi"
-	// AssignedNPUDevice device type supported by the device plugin
-	AssignedNPUDevice = "NPU"
+	// AscendNPUDevice device type supported by the device plugin
+	AscendNPUDevice = "NPU"
 	// NodeNPURegisterAnnotation for npu register annotation
 	NodeNPURegisterAnnotation = "huawei.com/node-vnpu-register."
 	// AssignedNPUsToAllocateAnnotations pod's npu devices to allocate to container

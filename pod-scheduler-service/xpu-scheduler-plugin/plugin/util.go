@@ -40,8 +40,8 @@ func EncodeNodeDevices(xpuDevices []*common.XPUDevice) string {
 }
 
 // DecodeNodeDevices decode string to node's xpus info
-func DecodeNodeDevices(str string, nodeId string) map[int]*common.XpuDevice {
-	xpuDevices := make(map[int]*common.XpuDevice)
+func DecodeNodeDevices(str string, nodeId string) map[int]*common.XPUDevice {
+	xpuDevices := make(map[int]*common.XPUDevice)
 	if !strings.Contains(str, ":") {
 		klog.V(util.LogErrorLevel).Infof("Decode node device failed, wrong annotations: %s", str)
 		return xpuDevices
@@ -54,7 +54,7 @@ func DecodeNodeDevices(str string, nodeId string) map[int]*common.XpuDevice {
 			items := strings.Split(val, ",")
 			if len(items) != util.XPUDeviceLen {
 				klog.V(util.LogErrorLevel).Infof("Decode node device failed, wrong device info: %s", val)
-				return map[int]*common.XpuDevice{}
+				return map[int]*common.XPUDevice{}
 			}
 			index, err := strconv.Atoi(items[0])
 			count, err := strconv.Atoi(items[2])
@@ -63,7 +63,7 @@ func DecodeNodeDevices(str string, nodeId string) map[int]*common.XpuDevice {
 			numa, err := strconv.Atoi(items[6])
 			if err != nil {
 				klog.V(util.LogErrorLevel).Infof("Decode node device failed, wrong device info: %s", val)
-				return map[int]*common.XpuDevice{}
+				return map[int]*common.XPUDevice{}
 			}
 			i := &common.XPUDevice{
 				Index:      index,
@@ -107,18 +107,18 @@ func EncodeContainerDevices(cd ContainerDevices) string {
 		encodeContainerDevices.Write([]byte(","))
 		encodeContainerDevices.Write([]byte(strconv.Itoa(int(val.UsedCores))))
 		encodeContainerDevices.Write([]byte(","))
-		encodeContainerDevices.Write([]byte(strconv.FormatUint(uint64(val.Vod), util.Base10)))
+		encodeContainerDevices.Write([]byte(strconv.FormatUint(uint64(val.Vid), util.Base10)))
 		encodeContainerDevices.Write([]byte(":"))
 	}
 	klog.V(util.LogDebugLevel).Infof("Encode container Devices: %s", encodeContainerDevices.String())
-	return EncodeContainerDevices.String()
+	return encodeContainerDevices.String()
 }
 
 // EncodePodDevices encode vxpu resource request of a pod to string
 func EncodePodDevices(pd PodDevices) string {
 	var ss []string
 	for _, cd := range pd {
-		ss = append(ss, EncodeNodeDevices(cd))
+		ss = append(ss, EncodeContainerDevices(cd))
 	}
 	return strings.Join(ss, ";")
 }
@@ -136,7 +136,7 @@ func DecodeContainerDevices(str string) ContainerDevices {
 		}
 		fields := strings.Split(val, ",")
 		tmpdev := common.ContainerDevice{}
-		if len(fields) != relect.TypeOf(tmpdev).NumField() {
+		if len(fields) != reflect.TypeOf(tmpdev).NumField() {
 			klog.V(util.LogErrorLevel).Infof("DecodeContainerDevices invalid parameter: %s", str)
 			return ContainerDevices{}
 		}
@@ -196,7 +196,7 @@ func GetXPUDevicesNotInUse(xpuDevices map[int]*common.XPUDevice,
 	}
 	for _, v := range xpuDevices {
 		_, usedInTopologyAllocation := inUseDevicesOfNode[v.Index]
-		if !v.InUse && v.Headlth && !usedInTopologyAllocation {
+		if !v.InUse && v.Health && !usedInTopologyAllocation {
 			res = append(res, v)
 		}
 	}
