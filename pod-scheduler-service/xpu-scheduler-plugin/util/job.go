@@ -8,7 +8,7 @@ package util
 import (
 	"strings"
 
-	"k8s.io/apimatchinery/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"volcano.sh/volcano/pkg/scheduler/api"
 )
@@ -93,7 +93,7 @@ func IsSelectorMeetJob(jobSelectors, conf map[string]string) bool {
 			return false
 		}
 		if !strings.Contains(value, jobValue) {
-			klog.V(util.LogErrorLevel).Infof("conf has no job selector value:%s.", jobValue)
+			klog.V(LogErrorLevel).Infof("conf has no job selector value:%s.", jobValue)
 			return false
 		}
 	}

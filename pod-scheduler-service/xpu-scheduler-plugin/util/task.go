@@ -62,7 +62,7 @@ func (xTask *XPUTask) UpdatePodPendingReason(taskInfo *api.TaskInfo, reason stri
 		Reason:  v1.PodReasonUnschedulable,
 		Message: reason,
 	}
-	for _, tmp := range taskInfo.PodStatus.Conditions {
+	for _, tmp := range taskInfo.Pod.Status.Conditions {
 		if reflect.DeepEqual(tmp, condition) {
 			return nil
 		}
