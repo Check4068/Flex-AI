@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/klog/v2"
 	"volcano.sh/volcano/pkg/scheduler/api"
-	"volcano.sh/volcano/pkg/scheduler/framwork"
+	"volcano.sh/volcano/pkg/scheduler/framework"
 	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/common"
 	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/internal/xpu"
 	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/plugin"
@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	scheduleHandler *plugin.scheduleHandler
+	scheduleHandler *plugin.ScheduleHandler
 	once            sync.Once
 )
 
@@ -89,7 +89,7 @@ func getNodeBandwidthConf(args framework.Arguments) {
 	return
 }
 
-func getNodeBandwidth(args framwork.Arguments, topologyNodeList []string) error {
+func getNodeBandwidth(args framework.Arguments, topologyNodeList []string) error {
 	argv, ok := args[XPUTopologyNodeBandwidth]
 	if !ok {
 		return errors.New("XPUTopologyNodeBandwidth not exist")
@@ -102,7 +102,7 @@ func getNodeBandwidth(args framwork.Arguments, topologyNodeList []string) error 
 	if len(matrix) != len(topologyNodeList) {
 		return errors.New("length of node bandwidth matrix is different from length of node list")
 	}
-	nodeBandWidth, err := util.ConverMatrix2Map(matrix, topologyNodeList)
+	nodeBandWidth, err := util.ConvertMatrix2Map(matrix, topologyNodeList)
 	if err != nil {
 		util.XPUTopologyNodeBandwidth = nil
 		return err
@@ -112,14 +112,14 @@ func getNodeBandwidth(args framwork.Arguments, topologyNodeList []string) error 
 	return nil
 }
 
-func addJobValidFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+func addJobValidFn(ssn *framework.Session, xp *huaweiXPUPlugin) {
 	// check job npu resource, if illegal return failed
 	ssn.AddJobValidFn(xp.Name(), func(obj interface{}) *api.ValidateResult {
 		return xp.Scheduler.JobValid(obj)
 	})
 }
 
-func addPredicateFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+func addPredicateFn(ssn *framework.Session, xp *huaweiXPUPlugin) {
 	// if node not meet the task require, the task will be failed. so need to intercept in advance
 	ssn.AddPredicateFn(xp.Name(), func(taskInfo *api.TaskInfo, nodeInfo *api.NodeInfo) ([]*api.Status, error) {
 		predicateStatus, err := xp.Scheduler.NodePredicate(taskInfo, nodeInfo)
@@ -132,7 +132,7 @@ func addPredicateFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
 	})
 }
 
-func addBatchNodeOrderFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+func addBatchNodeOrderFn(ssn *framework.Session, xp *huaweiXPUPlugin) {
 	ssn.AddBatchNodeOrderFn(xp.Name(), func(task *api.TaskInfo, nodes []*api.NodeInfo) (map[string]float64, error) {
 		score, err := xp.Scheduler.BatchNodeOrderFn(task, nodes)
 		if err != nil {
@@ -150,18 +150,18 @@ func addBatchNodeOrderFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
 	})
 }
 
-func addEventHandler(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+func addEventHandler(ssn *framework.Session, xp *huaweiXPUPlugin) {
 	// Register event handlers to update task info in PodLister & nodeMap
 	// for support Concurrency
-	ssn.AddEventHandler(&framwork.EventHandler{
-		AllocateFunc: func(event *framwork.Event) {
+	ssn.AddEventHandler(&framework.EventHandler{
+		AllocateFunc: func(event *framework.Event) {
 			if event == nil {
 				klog.V(util.LogErrorLevel).Infof("AllocateFunc event nil.")
 				return
 			}
 			xp.Scheduler.XPUAllocateFunc(event.Task, ssn)
 		},
-		DeallocateFunc: func(event *framwork.Event) {
+		DeallocateFunc: func(event *framework.Event) {
 			if event == nil {
 				klog.V(util.LogErrorLevel).Infof("DeallocateFunc event nil.")
 				return
@@ -171,7 +171,7 @@ func addEventHandler(ssn *framwork.Session, xp *huaweiXPUPlugin) {
 	})
 }
 
-func addJobReadyFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
+func addJobReadyFn(ssn *framework.Session, xp *huaweiXPUPlugin) {
 	ssn.AddJobReadyFn(xp.Name(), func(obj interface{}) bool {
 		ji, ok := obj.(*api.JobInfo)
 		if !ok {
@@ -186,7 +186,7 @@ func addJobReadyFn(ssn *framwork.Session, xp *huaweiXPUPlugin) {
 	})
 }
 
-func (xp *huaweiXPUPlugin) OnSessionOpen(ssn *framwork.Session) {
+func (xp *huaweiXPUPlugin) OnSessionOpen(ssn *framework.Session) {
 	klog.V(util.LogDebugLevel).Infof("enter %s OnSessionOpen.", PluginName)
 	defer klog.V(util.LogDebugLevel).Infof("leave %s OnSessionOpen.", PluginName)
 	if xp == nil || ssn == nil {
@@ -208,7 +208,7 @@ func (xp *huaweiXPUPlugin) OnSessionOpen(ssn *framwork.Session) {
 	addJobReadyFn(ssn, xp)
 }
 
-func (xp *huaweiXPUPlugin) OnSessionClose(ssn *framwork.Session) {
+func (xp *huaweiXPUPlugin) OnSessionClose(ssn *framework.Session) {
 	klog.V(util.LogDebugLevel).Infof("enter %s OnSessionClose.", PluginName)
 	defer klog.V(util.LogDebugLevel).Infof("leave %s OnSessionClose.", PluginName)
 	if xp == nil || ssn == nil {

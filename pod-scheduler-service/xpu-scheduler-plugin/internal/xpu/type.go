@@ -1,6 +1,9 @@
 package xpu
 
-import "huawei.com/xpu-exporter/common/utils"
+import (
+	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/plugin"
+	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/util"
+)
 
 var (
 	gpuPlugin = &plugin.SchedulerPlugin{
