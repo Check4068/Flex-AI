@@ -1,6 +1,11 @@
 package allocator
 
-import "errors"
+import (
+	"errors"
+
+	"volcano.sh/volcano/pkg/scheduler/api"
+	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/common"
+)
 
 var (
 	ErrCannotAllocation = errors.New("cannot allocate")
@@ -15,7 +20,7 @@ type NodeResource struct {
 }
 
 type PodCardRequest struct {
-	TaskId         api.TaskId
+	TaskId         api.TaskID
 	TaskName       string
 	NumberOfCard   int
 	IntraBandWidth int
@@ -23,7 +28,7 @@ type PodCardRequest struct {
 }
 
 type PodAllocation struct {
-	TaskId    api.TaskId
+	TaskId    api.TaskID
 	NodeName  string
 	DeviceIds []int
 }
