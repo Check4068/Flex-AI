@@ -1,11 +1,24 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ */
+
+// Package plugin implements xpu scheduler plugin
 package plugin
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
+
+	"k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
+	"volcano.sh/volcano/pkg/scheduler/api"
+	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/common"
+	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/util"
 )
 
+// EncodeNodeDevices encode a node's xpus info to string
 func EncodeNodeDevices(xpuDevices []*common.XPUDevice) string {
 	var encodeNodeDevices strings.Builder
 	for _, val := range xpuDevices {
@@ -22,19 +35,25 @@ func EncodeNodeDevices(xpuDevices []*common.XPUDevice) string {
 		encodeNodeDevices.Write([]byte(strconv.FormatBool(val.Health)))
 		encodeNodeDevices.Write([]byte(":"))
 	}
+	klog.V(util.LogDebugLevel).Infof("Encode node Devices: %s", encodeNodeDevices.String())
 	return encodeNodeDevices.String()
 }
 
+// DecodeNodeDevices decode string to node's xpus info
 func DecodeNodeDevices(str string, nodeId string) map[int]*common.XpuDevice {
 	xpuDevices := make(map[int]*common.XpuDevice)
 	if !strings.Contains(str, ":") {
+		klog.V(util.LogErrorLevel).Infof("Decode node device failed, wrong annotations: %s", str)
 		return xpuDevices
 	}
 	tmp := strings.Split(str, ":")
 	for _, val := range tmp {
 		if strings.Contains(val, ",") {
+			// NodeDevice
+			// Field description: GPU Index, GPU UUID, count, memory, type, health
 			items := strings.Split(val, ",")
 			if len(items) != util.XPUDeviceLen {
+				klog.V(util.LogErrorLevel).Infof("Decode node device failed, wrong device info: %s", val)
 				return map[int]*common.XpuDevice{}
 			}
 			index, err := strconv.Atoi(items[0])
@@ -43,6 +62,7 @@ func DecodeNodeDevices(str string, nodeId string) map[int]*common.XpuDevice {
 			health, err := strconv.ParseBool(items[5])
 			numa, err := strconv.Atoi(items[6])
 			if err != nil {
+				klog.V(util.LogErrorLevel).Infof("Decode node device failed, wrong device info: %s", val)
 				return map[int]*common.XpuDevice{}
 			}
 			i := &common.XPUDevice{
@@ -66,6 +86,7 @@ func DecodeNodeDevices(str string, nodeId string) map[int]*common.XpuDevice {
 	return xpuDevices
 }
 
+// EncodeContainerDevices encode vxpu resource request of a container to string
 func EncodeContainerDevices(cd ContainerDevices) string {
 	var encodeContainerDevices strings.Builder
 	for _, val := range cd {
@@ -89,5 +110,132 @@ func EncodeContainerDevices(cd ContainerDevices) string {
 		encodeContainerDevices.Write([]byte(strconv.FormatUint(uint64(val.Vod), util.Base10)))
 		encodeContainerDevices.Write([]byte(":"))
 	}
-	return (EncodeContainerDevices)
+	klog.V(util.LogDebugLevel).Infof("Encode container Devices: %s", encodeContainerDevices.String())
+	return EncodeContainerDevices.String()
+}
+
+// EncodePodDevices encode vxpu resource request of a pod to string
+func EncodePodDevices(pd PodDevices) string {
+	var ss []string
+	for _, cd := range pd {
+		ss = append(ss, EncodeNodeDevices(cd))
+	}
+	return strings.Join(ss, ";")
+}
+
+// DecodeContainerDevices decode vxpu resource request of a container from string
+func DecodeContainerDevices(str string) ContainerDevices {
+	if len(str) == 0 {
+		return ContainerDevices{}
+	}
+	cd := strings.Split(str, ":")
+	containerDevices := ContainerDevices{}
+	for _, val := range cd {
+		if strings.Contains(val, ",") == false {
+			continue
+		}
+		fields := strings.Split(val, ",")
+		tmpdev := common.ContainerDevice{}
+		if len(fields) != relect.TypeOf(tmpdev).NumField() {
+			klog.V(util.LogErrorLevel).Infof("DecodeContainerDevices invalid parameter: %s", str)
+			return ContainerDevices{}
+		}
+		index, err := strconv.Atoi(fields[0])
+		if err != nil {
+			klog.V(util.LogErrorLevel).Infof("DecodeContainerDevices invalid parameter: %s", str)
+			return ContainerDevices{}
+		}
+		tmpdev.Index = index
+		tmpdev.Id = fields[1]
+		tmpdev.Type = fields[2]
+		mem, err := strconv.Atoi(fields[3])
+		if err != nil {
+			klog.V(util.LogErrorLevel).Infof("DecodeContainerDevices invalid parameter: %s", str)
+			return ContainerDevices{}
+		}
+		tmpdev.UsedMemory = uint64(mem)
+		devcores, err := strconv.Atoi(fields[4])
+		if err != nil {
+			klog.V(util.LogErrorLevel).Infof("DecodeContainerDevices invalid parameter: %s", str)
+			return ContainerDevices{}
+		}
+		tmpdev.UsedCores = devcores
+		vid, err := strconv.ParseUint(fields[5], util.Base10, 0)
+		if err != nil {
+			klog.V(util.LogErrorLevel).Infof("DecodeContainerDevices invalid parameter: %s", str)
+			return ContainerDevices{}
+		}
+		tmpdev.Vid = uint(vid)
+		containerDevices = append(containerDevices, tmpdev)
+	}
+	return containerDevices
+}
+
+// DecodePodDevices decode vxpu resource request of a pod from string
+func DecodePodDevices(str string) PodDevices {
+	if len(str) == 0 {
+		return PodDevices{}
+	}
+	var pd PodDevices
+	for _, s := range strings.Split(str, ";") {
+		cd := DecodeContainerDevices(s)
+		pd = append(pd, cd)
+	}
+	return pd
+}
+
+// GetXPUDevicesNotInUse calculate unused xou devices on nodes for use in topology scheduling.
+// Unused devices refer to those that have not been allocated vxpu resources
+// and are not occupied by topology scheduling for other jobs
+func GetXPUDevicesNotInUse(xpuDevices map[int]*common.XPUDevice,
+	inUseDevices map[string]map[int]struct{}, nodeName string) []*common.XPUDevice {
+	var res []*common.XPUDevice
+	inUseDevicesOfNode, ok := inUseDevices[nodeName]
+	if !ok {
+		inUseDevicesOfNode = map[int]struct{}{}
+	}
+	for _, v := range xpuDevices {
+		_, usedInTopologyAllocation := inUseDevicesOfNode[v.Index]
+		if !v.InUse && v.Headlth && !usedInTopologyAllocation {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+// UpdateXPUDevicesFromTopologyResults update the xpuDevices struct, setting xpuDevice that are not yet bound
+// to a pod but are occupied by topology allocation to exclusive use.
+func UpdateXPUDevicesFromTopologyResults(xpuDevices map[int]*common.XPUDevice, inUseDevices map[int]struct{}) {
+	if inUseDevices == nil || len(inUseDevices) == 0 {
+		return
+	}
+	for index := range inUseDevices {
+		if _, exist := inUseDevices[index]; !exist {
+			continue
+		}
+		xpuDevices[index].InUse = true
+		xpuDevices[index].UsedCores = util.Base100
+		xpuDevices[index].UsedMemory = xpuDevices[index].Memory
+	}
+}
+
+func initScoreMap(nodes []*api.NodeInfo) map[string]float64 {
+	scoreMap := make(map[string]float64, len(nodes))
+	for _, node := range nodes {
+		if reflect.ValueOf(node).IsNil() {
+			continue
+		}
+		scoreMap[node.Name] = 0.0
+	}
+	return scoreMap
+}
+
+// GetXPUDevicesFromTopologyScheduleResult get xpu devices from topology schedule result
+func GetXPUDevicesFromTopologyScheduleResult(sJobs map[api.JobID]*SchedulerJob) map[string]map[int]struct{} {
+	inUseDevicesOfTopology := make(map[string]map[int]struct{})
+	for _, v := range sJobs {
+		for _, x := range v.TopologyScheduleResult {
+
+		}
+	}
 }
