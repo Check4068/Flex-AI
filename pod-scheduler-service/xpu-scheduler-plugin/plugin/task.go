@@ -57,7 +57,7 @@ func (sh ScheduleHandler) XPUAllocateFunc(task *api.TaskInfo, ssn *framework.Ses
 		return
 	}
 
-	sh.GetAllocateableXPUDeviceOnNodes(sJob)
+	sh.GetAllocatableXPUDeviceOnNodes(sJob)
 	err := sJob.handler.Allocate(sJob, task, node, sh.getXPUDevicesOfNode(nodeName))
 	if err != nil {
 		klog.V(util.LogErrorLevel).Infof("XPUAllocateFunc allocate failed: %s.", util.ArgumentError)
