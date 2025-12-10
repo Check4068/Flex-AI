@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 
-	v1 "k8s.io/api/batch/v1"
 	"volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/util"
 )
@@ -27,7 +26,7 @@ func (sJob *SchedulerJob) Init(vcJob *api.JobInfo, sh *ScheduleHandler) error {
 }
 
 func (sJob *SchedulerJob) initJobInfo(vcJob *api.JobInfo) error {
-	name, num, tasks := getXPUTasks(vcJob)
+	name, num, tasks := getJobXPUTasks(vcJob)
 	if tasks == nil {
 		return errors.New("job has no xpu task")
 	}

@@ -94,7 +94,7 @@ func getTaskScheduledResult(task *api.TaskInfo, sJob *SchedulerJob, scoreMap map
 	if _, exist := sJob.TopologyScheduleResult[task.UID]; !exist {
 		return false
 	}
-	if _, exist := scoreMap[task.UID]; !exist {
+	if _, exist := sJob.Tasks[task.UID]; !exist {
 		return false
 	}
 
@@ -126,7 +126,7 @@ func (sh *ScheduleHandler) GetAllocatableXPUDeviceOnNodes(sJob *SchedulerJob) ma
 	inUseDevicesOfTopology := GetXPUDevicesFromTopologyScheduleResult(sh.Jobs)
 	unUseXPUDeviceOfNodes := make(map[string][]*common.XPUDevice)
 	for _, v := range sh.Nodes {
-		sh.InitXPUDevicesOfNode(sJob, v)
+		sh.initXPUDevicesOfNode(sJob, v)
 		xpuDevices := sh.getXPUDevicesOfNode(v.Name)
 		sh.Lock()
 		UpdateXPUDevicesFromTopologyResults(xpuDevices, inUseDevicesOfTopology[v.Name])

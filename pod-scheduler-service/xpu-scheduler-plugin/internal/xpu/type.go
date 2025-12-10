@@ -7,16 +7,16 @@ import (
 
 var (
 	gpuPlugin = &plugin.SchedulerPlugin{
-		PluginName:                 util.GpuPluginName,
-		VxpuName:                   util.VGpuName,
-		VxpuType:                   util.VGpuType,
-		VxpuCore:                   util.VGpuCore,
-		VxpuMemory:                 util.VGpuMemory,
+		PluginName:                 util.GPUPluginName,
+		VxpuName:                   util.VGPUName,
+		VxpuType:                   util.VGPUType,
+		VxpuCore:                   util.VGPUCore,
+		VxpuMemory:                 util.VGPUMemory,
 		Config:                     Config,
-		NodeXPURegisterAnno:        util.NodeGPURegisterAnno,
+		NodeXPURegisterAnno:        util.NodeGPURegisterAnnotation,
 		AssignedXPUsToAllocateAnno: util.AssignedGPUsToAllocateAnnotations,
 		AssignedXPUsToNodeAnno:     util.AssignedGPUsToNodeAnnotations,
-		AssignedXPUsPodAnno:        util.AssignedGPUsPodAnnotations,
+		AssignedXPUsToPodAnno:      util.AssignedGPUsToPodAnnotations,
 		NodeXPUTopologyAnno:        util.NodeGPUTopologyAnnotation,
 		NodeXPUHandshakeAnno:       util.NodeGPUHandshakeAnnotation,
 	}
