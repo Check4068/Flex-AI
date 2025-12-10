@@ -226,7 +226,7 @@ func (xp *huaweiXPUPlugin) OnSessionClose(ssn *framework.Session) {
 		if job.PodGroup.Status.Phase == util.PodGroupInqueue ||
 			job.PodGroup.Status.Phase == util.PodGroupPending {
 			// if all nodes not meet job require failed
-			xp.Scheduler.SetJobPendReasonByNodesCase(job)
+			xp.Scheduler.SetJobPendingReasonByNodesCase(job)
 		}
 		if len(job.PodGroup.Annotations) != 0 && job.PodGroup.Annotations[util.PodDeleteTimes] == util.TagOfPodPending {
 			xp.Scheduler.UpdatePodGroupPendingReason(job, util.JobRestartReason)
