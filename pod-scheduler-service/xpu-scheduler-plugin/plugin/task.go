@@ -9,7 +9,6 @@ import (
 	"k8s.io/klog/v2"
 	"volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/framework"
-	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/common"
 	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/util"
 )
 
