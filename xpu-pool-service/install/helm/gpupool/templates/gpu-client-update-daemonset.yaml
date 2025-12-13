@@ -1,0 +1,54 @@
+# Copyright Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.gpuClientUpdate.name }}-daemonset
+  namespace: {{ .Values.basic.namespace }}
+  labels:
+    name: {{ .Values.gpuClientUpdate.labels.name }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Values.gpuClientUpdate.name }}
+  {{- with .Values.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | indent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.gpuClientUpdate.name }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+    spec:
+      {{- with .Values.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | indent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      containers:
+      - name: {{ .Values.gpuClientUpdate.name }}
+        image: {{ .Values.basic.swr_addr }}/{{ .Values.gpuClientUpdate.image.name }}:{{ .Values.gpuClientUpdate.image.version }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        {{- with .Values.clientupdateSecurityContext }}
+        securityContext:
+          {{- toYaml . | indent 10 }}
+        {{- end }}
+        {{- with .Values.flavor.gpu_client_update_daemonset }}
+        resources:
+          {{- toYaml . | indent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: opt-xpu
+          mountPath: /opt/xpu
+        - name: lib64
+          mountPath: /usr/lib64
+      volumes:
+      - name: opt-xpu
+        hostPath:
+          path: /opt/xpu
+      - name: lib64
+        hostPath:
+          path: /usr/lib64

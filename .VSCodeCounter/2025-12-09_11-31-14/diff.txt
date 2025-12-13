@@ -1,0 +1,174 @@
+Date : 2025-12-09 11:31:14
+Directory : c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install
+Total : 89 files,  -4447 codes, -451 comments, -635 blanks, all -5533 lines
+
+Languages
++------------------+------------+------------+------------+------------+------------+
+| language         | files      | code       | comment    | blank      | total      |
++------------------+------------+------------+------------+------------+------------+
+| YAML             |         23 |        516 |         19 |         13 |        548 |
+| Markdown         |          1 |          0 |          0 |         -1 |         -1 |
+| JSON             |          1 |        -13 |          0 |          0 |        -13 |
+| Docker           |          5 |        -45 |        -22 |        -21 |        -88 |
+| Makefile         |          2 |        -54 |         -4 |        -11 |        -69 |
+| XML              |          5 |        -62 |         -1 |          0 |        -63 |
+| CMake            |          3 |        -73 |          0 |        -18 |        -91 |
+| Go Module File   |          2 |        -96 |          0 |         -8 |       -104 |
+| Go Checksum File |          2 |       -219 |          0 |          0 |       -219 |
+| Shell Script     |         13 |       -297 |        -59 |        -47 |       -403 |
+| Go               |         32 |     -4,104 |       -384 |       -542 |     -5,030 |
++------------------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                                              | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                                                 |         89 |     -4,447 |       -451 |       -635 |     -5,533 |
+| . (Files)                                                                                                                                         |          4 |        177 |         25 |         34 |        236 |
+| ..                                                                                                                                                |         68 |     -5,349 |       -496 |       -696 |     -6,541 |
+| .. (Files)                                                                                                                                        |          3 |       -274 |         -2 |        -10 |       -286 |
+| ..\..                                                                                                                                             |         52 |     -3,250 |       -326 |       -494 |     -4,070 |
+| ..\.. (Files)                                                                                                                                     |          2 |        -19 |          0 |         -8 |        -27 |
+| ..\..\ci                                                                                                                                          |         20 |       -590 |        -43 |        -82 |       -715 |
+| ..\..\ci (Files)                                                                                                                                  |          9 |       -254 |        -15 |        -33 |       -302 |
+| ..\..\ci\at                                                                                                                                       |          2 |        -71 |         -3 |        -10 |        -84 |
+| ..\..\ci\cmc                                                                                                                                      |          2 |        -48 |          0 |          0 |        -48 |
+| ..\..\ci\xpu_pool                                                                                                                                 |          7 |       -217 |        -25 |        -39 |       -281 |
+| ..\..\ci\xpu_pool (Files)                                                                                                                         |          2 |       -172 |         -3 |        -18 |       -193 |
+| ..\..\ci\xpu_pool\xpu_docker_build                                                                                                                |          5 |        -45 |        -22 |        -21 |        -88 |
+| ..\..\ci\xpu_pool\xpu_docker_build\acl_client                                                                                                     |          1 |         -5 |         -2 |         -3 |        -10 |
+| ..\..\ci\xpu_pool\xpu_docker_build\cuda_client                                                                                                    |          1 |         -5 |         -2 |         -3 |        -10 |
+| ..\..\ci\xpu_pool\xpu_docker_build\exporter                                                                                                       |          1 |        -20 |         -4 |         -6 |        -30 |
+| ..\..\ci\xpu_pool\xpu_docker_build\gpu_device_plugin                                                                                              |          1 |        -10 |         -4 |         -5 |        -19 |
+| ..\..\ci\xpu_pool\xpu_docker_build\npu_device_plugin                                                                                              |          1 |         -5 |        -10 |         -4 |        -19 |
+| ..\..\client_update                                                                                                                               |          2 |       -128 |        -63 |        -27 |       -218 |
+| ..\..\direct                                                                                                                                      |          3 |        -87 |         -1 |        -18 |       -106 |
+| ..\..\direct (Files)                                                                                                                              |          2 |        -54 |         -1 |        -11 |        -66 |
+| ..\..\direct\acl                                                                                                                                  |          1 |        -33 |          0 |         -7 |        -40 |
+| ..\..\xpu-exporter                                                                                                                                |         25 |     -2,426 |       -219 |       -359 |     -3,004 |
+| ..\..\xpu-exporter (Files)                                                                                                                        |          3 |        -95 |         -2 |         -9 |       -106 |
+| ..\..\xpu-exporter\cmd                                                                                                                            |          1 |       -107 |        -15 |        -18 |       -140 |
+| ..\..\xpu-exporter\cmd\xpu-exporter                                                                                                               |          1 |       -107 |        -15 |        -18 |       -140 |
+| ..\..\xpu-exporter\collector                                                                                                                      |          5 |       -347 |        -38 |        -57 |       -442 |
+| ..\..\xpu-exporter\collector (Files)                                                                                                              |          1 |        -11 |         -8 |         -6 |        -25 |
+| ..\..\xpu-exporter\collector\gpuservice                                                                                                           |          2 |       -273 |        -15 |        -33 |       -321 |
+| ..\..\xpu-exporter\collector\npuservice                                                                                                           |          2 |        -63 |        -15 |        -18 |        -96 |
+| ..\..\xpu-exporter\common                                                                                                                         |         13 |     -1,477 |       -130 |       -211 |     -1,818 |
+| ..\..\xpu-exporter\common (Files)                                                                                                                 |          1 |        -50 |         -7 |        -10 |        -67 |
+| ..\..\xpu-exporter\common\cache                                                                                                                   |          2 |       -390 |        -27 |        -38 |       -455 |
+| ..\..\xpu-exporter\common\client                                                                                                                  |          2 |        -78 |         -9 |        -17 |       -104 |
+| ..\..\xpu-exporter\common\limiter                                                                                                                 |          4 |       -503 |        -34 |        -73 |       -610 |
+| ..\..\xpu-exporter\common\service                                                                                                                 |          2 |       -400 |        -39 |        -63 |       -502 |
+| ..\..\xpu-exporter\common\utils                                                                                                                   |          2 |        -56 |        -14 |        -10 |        -80 |
+| ..\..\xpu-exporter\server                                                                                                                         |          2 |       -395 |        -28 |        -63 |       -486 |
+| ..\..\xpu-exporter\versions                                                                                                                       |          1 |         -5 |         -6 |         -1 |        -12 |
+| ..\client                                                                                                                                         |          2 |       -199 |        -52 |        -26 |       -277 |
+| ..\cmd                                                                                                                                            |          2 |       -444 |        -40 |        -34 |       -518 |
+| ..\examples                                                                                                                                       |          3 |        -52 |         -1 |          0 |        -53 |
+| ..\pkg                                                                                                                                            |          4 |     -1,052 |        -65 |       -115 |     -1,232 |
+| ..\pkg\api                                                                                                                                        |          4 |     -1,052 |        -65 |       -115 |     -1,232 |
+| ..\pkg\api\runtime                                                                                                                                |          4 |     -1,052 |        -65 |       -115 |     -1,232 |
+| ..\pkg\api\runtime\service                                                                                                                        |          4 |     -1,052 |        -65 |       -115 |     -1,232 |
+| ..\watchers                                                                                                                                       |          2 |        -78 |        -10 |        -17 |       -105 |
+| helm                                                                                                                                              |         14 |        564 |         14 |         16 |        594 |
+| helm\gpupool                                                                                                                                      |         14 |        564 |         14 |         16 |        594 |
+| helm\gpupool (Files)                                                                                                                              |          2 |        104 |          2 |         14 |        120 |
+| helm\gpupool\templates                                                                                                                            |         12 |        460 |         12 |          2 |        474 |
+| yaml                                                                                                                                              |          3 |        161 |          6 |         11 |        178 |
++---------------------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| filename                                                                                                                                          | language         | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\CMakeLists.txt                                                                    | CMake            |        -19 |          0 |         -7 |        -26 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\Makefile                                                        | Makefile         |        -34 |         -2 |         -6 |        -42 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\client\client.go                                                | Go               |        -53 |        -13 |         -9 |        -75 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\client\client_test.go                                           | Go               |       -146 |        -39 |        -17 |       -202 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\cmd\main.go                                                     | Go               |        -97 |        -38 |        -25 |       -160 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\cmd\main_test.go                                                | Go               |       -347 |         -2 |         -9 |       -358 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\examples\vgpu-exceed.yml                                        | YAML             |        -14 |         -1 |          0 |        -15 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\examples\vgpu-test.yml                                          | YAML             |        -25 |          0 |          0 |        -25 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\examples\vgpu-whole-card.yml                                    | YAML             |        -13 |          0 |          0 |        -13 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\go.mod                                                          | Go Module File   |        -63 |          0 |         -4 |        -67 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\go.sum                                                          | Go Checksum File |       -177 |          0 |          0 |       -177 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\gpu_env_init.sh                                         | Shell Script     |         21 |          4 |          5 |         30 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\Chart.yaml                                 | YAML             |          7 |          1 |          1 |          9 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\gpu-client-update-daemonset.yaml | YAML             |         53 |          1 |          0 |         54 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\gpu-device-plugin-configmap.yaml | YAML             |         10 |          2 |          0 |         12 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\gpu-device-plugin-daemonset.yaml | YAML             |         94 |          1 |          0 |         95 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\npu-client-update-daemonset.yaml | YAML             |         53 |          1 |          0 |         54 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\npu-device-plugin-daemonset.yaml | YAML             |         86 |          1 |          0 |         87 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\role-binding.yaml                | YAML             |         15 |          1 |          0 |         16 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\role.yaml                        | YAML             |         33 |          1 |          1 |         35 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\runtimeclass.yaml                | YAML             |          5 |          0 |          0 |          5 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\service-account.yaml             | YAML             |          7 |          1 |          1 |          9 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\xpu-exporter-daemonset.yaml      | YAML             |         67 |          1 |          0 |         68 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\xpu-exporter-service.yaml        | YAML             |         15 |          1 |          0 |         16 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\templates\xpu-servicemonitor.yaml          | YAML             |         22 |          1 |          0 |         23 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\helm\gpupool\values.yaml                                | YAML             |         97 |          1 |         13 |        111 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\install.sh                                              | Shell Script     |        105 |         12 |         17 |        134 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\npu_env_init.sh                                         | Shell Script     |          3 |          2 |          2 |          7 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\uninstall.sh                                            | Shell Script     |         48 |          7 |         10 |         65 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\yaml\client-update.yaml                                 | YAML             |         37 |          1 |          1 |         39 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\yaml\gpu-device-plugin.yaml                             | YAML             |        118 |          4 |          9 |        131 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\install\yaml\namespace.yaml                                     | YAML             |          6 |          1 |          1 |          8 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\api.pb.go                               | Go               |       -289 |        -18 |        -42 |       -349 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\api_grpc.pb.go                          | Go               |       -108 |        -22 |        -18 |       -148 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\service_impl.go                         | Go               |       -422 |        -21 |        -33 |       -476 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\service_impl_test.go                    | Go               |       -233 |         -4 |        -22 |       -259 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\watchers\watchers.go                                            | Go               |        -24 |         -6 |         -7 |        -37 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\watchers\watchers_test.go                                       | Go               |        -54 |         -4 |        -10 |        -68 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\README.md                                                                         | Markdown         |          0 |          0 |         -1 |         -1 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\VersionSet.xml                                                                 | XML              |         -1 |          0 |          0 |         -1 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\app_define.json                                                                | JSON             |        -13 |          0 |          0 |        -13 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\at\at_deploy.sh                                                                | Shell Script     |        -23 |         -3 |         -5 |        -31 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\at\at_deploy.yml                                                               | YAML             |        -48 |          0 |         -5 |        -53 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\build.sh                                                                       | Shell Script     |        -80 |         -4 |        -18 |       -102 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\build.yml                                                                      | YAML             |        -44 |          0 |         -4 |        -48 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\buildinfo.sh                                                                   | Shell Script     |        -11 |         -3 |         -2 |        -16 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\cmc\openSource_x86.xml                                                         | XML              |        -24 |          0 |          0 |        -24 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\cmc\upload_cmc.xml                                                             | XML              |        -24 |          0 |          0 |        -24 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\cms_signature.sh                                                               | Shell Script     |        -55 |         -3 |         -6 |        -64 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\dependency.xml                                                                 | XML              |         -7 |         -1 |          0 |         -8 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\hwp7s_signature.sh                                                             | Shell Script     |        -37 |         -4 |         -3 |        -44 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\opensource.xml                                                                 | XML              |         -6 |          0 |          0 |         -6 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\build_x86.yml                                                         | YAML             |        -65 |          0 |         -5 |        -70 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\build_xpu_package.sh                                                  | Shell Script     |       -107 |         -3 |        -13 |       -123 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\acl_client\Dockerfile                                | Docker           |         -5 |         -2 |         -3 |        -10 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\cuda_client\Dockerfile                               | Docker           |         -5 |         -2 |         -3 |        -10 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\exporter\Dockerfile                                  | Docker           |        -20 |         -4 |         -6 |        -30 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\gpu_device_plugin\Dockerfile                         | Docker           |        -10 |         -4 |         -5 |        -19 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\npu_device_plugin\Dockerfile                         | Docker           |         -5 |        -10 |         -4 |        -19 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\client_update\acl-client-update.sh                                                | Shell Script     |        -60 |        -28 |        -15 |       -103 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\client_update\cuda-client-update.sh                                               | Shell Script     |        -68 |        -35 |        -12 |       -115 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\direct\CMakeLists.txt                                                             | CMake            |        -21 |          0 |         -4 |        -25 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\direct\acl\CMakeLists.txt                                                         | CMake            |        -33 |          0 |         -7 |        -40 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\direct\make_lib_original.sh                                                       | Shell Script     |        -33 |         -1 |         -7 |        -41 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\Makefile                                                             | Makefile         |        -20 |         -2 |         -5 |        -27 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\cmd\xpu-exporter\main.go                                             | Go               |       -107 |        -15 |        -18 |       -140 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\collector\collector_service.go                                       | Go               |        -11 |         -8 |         -6 |        -25 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\collector\gpuservice\gpu_collector.go                                | Go               |       -200 |         -6 |        -22 |       -228 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\collector\gpuservice\gpu_collector_service.go                        | Go               |        -73 |         -9 |        -11 |        -93 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\collector\npuservice\npu_collector.go                                | Go               |        -32 |         -6 |         -8 |        -46 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\collector\npuservice\npu_collector_service.go                        | Go               |        -31 |         -9 |        -10 |        -50 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\cache\lrucache.go                                             | Go               |       -319 |        -21 |        -26 |       -366 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\cache\lrucache_test.go                                        | Go               |        -71 |         -6 |        -12 |        -89 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\client\client.go                                              | Go               |        -36 |         -5 |         -6 |        -47 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\client\client_test.go                                         | Go               |        -42 |         -4 |        -11 |        -57 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\limiter\limit_handler.go                                      | Go               |       -223 |        -20 |        -28 |       -271 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\limiter\limit_handler_test.go                                 | Go               |        -90 |         -6 |        -12 |       -108 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\limiter\limit_listener.go                                     | Go               |       -112 |         -8 |        -17 |       -137 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\limiter\limit_listener_test.go                                | Go               |        -78 |          0 |        -16 |        -94 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\service\api.pb.go                                             | Go               |       -292 |        -15 |        -43 |       -350 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\service\api_grpc.pb.go                                        | Go               |       -108 |        -24 |        -20 |       -152 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\test_utils.go                                                 | Go               |        -50 |         -7 |        -10 |        -67 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\utils\ip_utils.go                                             | Go               |        -25 |         -7 |         -6 |        -38 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\common\utils\type.go                                                 | Go               |        -31 |         -7 |         -4 |        -42 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\go.mod                                                               | Go Module File   |        -33 |          0 |         -4 |        -37 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\go.sum                                                               | Go Checksum File |        -42 |          0 |          0 |        -42 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\server\prometheus.go                                                 | Go               |       -223 |        -23 |        -31 |       -277 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\server\prometheus_test.go                                            | Go               |       -172 |         -5 |        -32 |       -209 |
+| c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\xpu-exporter\versions\version.go                                                  | Go               |         -5 |         -6 |         -1 |        -12 |
+| Total                                                                                                                                             |                  |     -4,447 |       -451 |       -635 |     -5,533 |
++---------------------------------------------------------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
