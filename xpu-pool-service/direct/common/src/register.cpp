@@ -26,7 +26,7 @@ void SetProcCgroupPath(const string& path)
 #endif
 
 const static string RPC_CLIENT_NAME = "xpu-client-tool";
-const static string RPC_CLIENT_PATH = "/usr/bin/" + RPC_CLIENT_NAME;
+const static string RPC_CLIENT_PATH = "/opt/xpu/bin/xpu-client-tool";
 const static int TRY_TIMES = 10;
 
 void FileOperateErrorHandler(const std::istream& file, const string &path)
@@ -35,10 +35,11 @@ void FileOperateErrorHandler(const std::istream& file, const string &path)
         log_err("I/O error while reading file {%s}", path);
     } else if (!file.eof()) {
         log_err("File {} reached the end", path);
-    } else {
+    } else if (!file.fail()) {
         log_err("Non-fatal error occurred while opening {}", path);
+    } else {
+        log_err("Unexpected error occurred while opening {}", path);
     }
-    log_err("Unexpected error occurred while opening {}", path);
 }
 
 int GetCgroupData(const string& groupPath, string& groupData)

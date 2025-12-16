@@ -178,7 +178,7 @@ func (m *DevicePlugin) register() error {
 	if err != nil {
 		return err
 	}
-	if conn != nil {
+	if conn == nil {
 		return fmt.Errorf("client connection is nil")
 	}
 	defer conn.Close()
@@ -203,7 +203,7 @@ func (m *DevicePlugin) GetDevicePluginOptions(context.Context, *v1beta1.Empty) (
 }
 
 // GetPreferredAllocation returns a preferred set of devices to allocate
-func (m *DevicePlugin) GetPreferredAllocation(context.Context, *v1beta1.PreferedAllocationRequest) (
+func (m *DevicePlugin) GetPreferredAllocation(context.Context, *v1beta1.PreferredAllocationRequest) (
 	*v1beta1.PreferredAllocationResponse, error) {
 	resp := &v1beta1.PreferredAllocationResponse{}
 	return resp, nil
@@ -340,7 +340,7 @@ func (m *DevicePlugin) Allocate(ctx context.Context, reqs *v1beta1.AllocateReque
 	// current is nil when user pod doesn't specify vocano scheduler
 	if current == nil {
 		log.Errorln("user pod doesn't specify volcano scheduler")
-		return &v1beta1.AllocateResponse{}, error.New("user pod doesn't specify volcano scheduler")
+		return &v1beta1.AllocateResponse{}, errors.New("user pod doesn't specify volcano scheduler")
 	}
 	log.Infoln("Allocate pod", current.Name)
 
@@ -370,8 +370,8 @@ func (m *DevicePlugin) Allocate(ctx context.Context, reqs *v1beta1.AllocateReque
 			log.Errorf("create dir and WriteFile error: %v, podId: %s, containerName: %s",
 				err, string(current.UID), curContainer.Name)
 		}
-		responses := createContainerAllocateResponse(string(current.UID), curContainer.Name, devReq)
-		responses.ContainerResponses = append(responses.ContainerResponses, responses)
+		response := createContainerAllocateResponse(string(current.UID), curContainer.Name, devReq)
+		responses.ContainerResponses = append(responses.ContainerResponses, response)
 	}
 	log.Infoln("Allocate Response", responses.ContainerResponses)
 	util.PodAllocationTrySuccess(nodename, current)

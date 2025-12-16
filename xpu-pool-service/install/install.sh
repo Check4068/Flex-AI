@@ -113,9 +113,8 @@ fi
 
 # 获取gpupool的状态并检查是否为deployed
 release_status=$(helm status "${deployment_name}" | grep "STATUS" | awk '{print $2}')
-if [[ $release_status != "deployed" ]]; then
+if [[ $release_status = "deployed" ]]; then
     echo "Release '${deployment_name}' installed successfully"
-    exit 1
 else
     echo "The deployment status of release '${deployment_name}' is not deployed. Current state is ${release_status}"
     exit 1

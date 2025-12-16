@@ -39,16 +39,11 @@ backup_list_all_rx[${monitor_path}]=${root_monitor_path}
 backup_list_all_rx[${tool_path}]=${root_tool_path}
 
 make_backup() {
-    # 获取系统库文件的真实路径（处理符号链接），参数 $1 是库文件名
-    local native=$(readlink -m ${lib_path}/$1)  # 例如：/usr/local/Ascend/ascend-toolkit/latest/lib64/libruntime.so
-    # 构建原始备份文件路径，参数 $2 是原始备份文件名
-    local original=${work_lib_path}/$2  # 例如：/opt/xpu/lib/libruntime_original.so
-    # 构建工作目录备份文件路径
-    local backup=${work_lib_path}/$1.bak  # 例如：/opt/xpu/lib/libruntime.so.bak
-    # 构建容器根目录备份文件路径
-    local container_backup=${root_path}/$1.bak  # 例如：/root/libruntime.so.bak
-    # 构建包装器文件路径，参数 $3 是包装器文件名
-    local direct=${root_path}/$3  # 例如：/root/libruntime_direct.so
+    local native=$(readlink -m ${lib_path}/$1)  # 例如： libxxx.so
+    local original=${work_lib_path}/$2  # libxxx_original.so
+    local backup=${work_lib_path}/$1.bak  
+    local container_backup=${root_path}/$1.bak  
+    local direct=${root_path}/$3  # libxxx_direct.so
 
     # 检查系统库文件是否存在
     if [ ! -f "${native}" ]; then
@@ -74,29 +69,49 @@ make_backup() {
 }
 
 # 调用 make_backup 函数，备份并替换 libruntime.so 库文件
-# 参数：库文件名、原始备份文件名、包装器文件名
 make_backup libruntime.so libruntime_original.so libruntime_direct.so \
 && echo "client file initialization completed" \
 || (echo "client file initialization failed" && exit 1)
 
 update_all_rx() {
-    ...
+    if [ ! -f ${1} ]; then
+        echo "${1} missing!"
+    fi
+    src_sha256=$(sha256sum "${1}" | awk '{print $1}')
+    dest_sha256=$(sha256sum "${2}" | awk '{print $1}')
+    if [ "${src_sha256}" != "${dest_sha256}" ]; then
+        install -m 555 "${1}" "${2}"
+        echo "basename ${2} is restored"
+    fi
 }
 
-# 主循环：持续监控文件更新
+update_user_r() {
+    if [ ! -f ${1} ]; then
+        echo "${1} missing!"
+    fi
+    src_sha256=$(sha256sum "${1}" | awk '{print $1}')
+    dest_sha256=$(sha256sum "${2}" | awk '{print $1}')
+    if [ "${src_sha256}" != "${dest_sha256}" ]; then
+        install -m 400 "${1}" "${2}"
+        echo "basename ${2} is restored"
+    fi
+}
+
+# 监控源文件是否被修改
 while true; do
-    # 更新所有需要监控的文件（包括库文件和工具文件）
-    update_all_rx
-    # 更新用户级别的备份文件
-    update_user_r
+    for watched in "${!backup_list_user_r[@]}"; do
+        update_user_r "${watched}" "${backup_list_user_r[$watched]}"
+    done
+    for watched in "${!backup_list_all_rx[@]}"; do
+        update_all_rx "${watched}" "${backup_list_all_rx[$watched]}"
+    done
     
     # 检查监控工具的符号链接是否正确，如果不正确则恢复
     if [ "$(readlink ${monitor_linkpath})" != "${monitor_path}" ]; then
-        echo "monitor link is restored"
-        ln -fs ${monitor_name} ${monitor_linkpath}
+        echo "$monitor_link is restored"
+        ln -fs $monitor_name $monitor_linkpath
     fi
     
-    # 休眠 5 秒后继续监控
-    sleep 5
     echo 'files is being monitored'
+    sleep 5
 done

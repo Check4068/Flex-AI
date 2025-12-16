@@ -8,7 +8,7 @@ package plugin
 import (
 	"sync"
 
-	"k8s.io/kubelet/plg/apis/deviceplugin/v1beta1"
+	"k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
 	"huawei.com/vxpu-device-plugin/pkg/plugin/xpu"
 )

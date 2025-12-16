@@ -54,7 +54,7 @@ public:
     int Initialize();
 
 TESTABLE_PROTECTED:
-    int LoadNpuIdsConfig();
+    int LoadVnpuIdsConfig();
     int ComputingPowerWatcherInit();
     void JoinWatcher();
 

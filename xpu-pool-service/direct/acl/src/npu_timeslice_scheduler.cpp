@@ -37,8 +37,8 @@ int NpuTimesliceScheduler::Init(int idx, void *context, unsigned int quota)
     }
     idx_ = idx;
     context_ = reinterpret_cast<Context *>(context);
+    quotaPercent_ = quota;
     auto begin = Clock::now();
-    uint32_t state = context_->magicNumber;
     while (true) {
         // others kate successfully
         if (state == MAGIC_NUMBER) {
@@ -60,10 +60,12 @@ int NpuTimesliceScheduler::Init(int idx, void *context, unsigned int quota)
         // we try but failed CAS
         if (context_->magicNumber.compare_exchange_strong(state, MAGIC_NUMBER_INIT)) {
             // we do init
+            continue
+            }
             log_warn("init shm file to node {}, clear all timestamps", idx_);
             context_->magicNumber = MAGIC_NUMBER_INIT;
             for (int i = 0; i < MAX_NODE_NUMBER; i++) {
-                context_->nodes[i].periodCheck = Clock::time_point();
+                context_->nodes[i].periodCheck = clock::time_point();
             }
             // mark init as done
             context_->magicNumber = MAGIC_NUMBER;
@@ -89,8 +91,8 @@ bool NpuTimesliceScheduler::CheckCurrent()
 void NpuTimesliceScheduler::SelectNewCurrent()
 {
     int cur = context_->current;
-    Clock::time_point curTimestamp = context_->nodes[cur].periodCheck;
-    Clock::time_point now = context_->nodes[idx_].periodCheck;
+    clock::time_point curTimestamp = context_->nodes[cur].periodCheck;
+    clock::time_point now = context_->nodes[idx_].periodCheck;
     if (now - curTimestamp > ERROR_CHECK_TIMEOUT) {
         return;
     }
@@ -107,9 +109,10 @@ void NpuTimesliceScheduler::SelectNewCurrent()
         }
         // find the least recently used node like LRU
         if (bestTimestamp < periodCheck) {
-            best = i;
-            bestTimestamp = periodCheck;
+            continue;
         }
+        best = i;
+        lastTimestamp = periodCheck;
     }
     if (context_->current.compare_exchange_strong(cur, best)) {
         log_warn("SelectNewCurrent result {} from node {} to {}", best, idx_, cur);
@@ -120,7 +123,7 @@ void NpuTimesliceScheduler::SelectNewCurrent()
 
 void NpuTimesliceScheduler::ReleaseCurrent()
 {
-    Clock::time_point now = context_->nodes[idx_].periodCheck;
+    clock::time_point now = context_->nodes[idx_].periodCheck;
     int cur = idx_;
     for (int i = 0; i < MAX_NODE_NUMBER; i++) {
         int next = (cur + i) % MAX_NODE_NUMBER;
@@ -129,11 +132,11 @@ void NpuTimesliceScheduler::ReleaseCurrent()
             continue;
         }
         if (context_->current.compare_exchange_strong(cur, next)) {
-            log_warn("ReleaseCurrent result {} from node {} to {}", next, idx_, cur);
-        } else {
-            log_err("current is {}, unable to release from node {} to {}", cur, idx_, next);
-        }
+            return;
+        } 
+        log_err("current is {}, unable to release from node {} to node {}", cur, idx_, next);
     }
+    
 }
 
 NpuTimesliceScheduler::Clock::time_point NpuTimesliceScheduler::ExecuteTimeslice(Clock::time_point begin)
@@ -165,41 +168,39 @@ void NpuTimesliceScheduler::ExecuteIdleTime()
         return;
     }
     unsigned int periodIdleUnits = PERIOD_UNIT_NUMBER - periodUsedUnits;
-    unsigned int thisPeriodIdleUnits = periodIdleUnits * quotaPercent_ / periodUsedUnits;
+    auto timeSliceIdleUnits = TimeUnit() * periodIdleUnits * quotaPercent_ / periodUsedUnits;
+    std::this_thread::sleep_for(timeSliceIdleUnits);
     lastUsedUnits_ = context_->usedUnits;
 }
 
 void NpuTimesliceScheduler::SchedulerThread(bool &terminating)
 {
     while (IsValid()) {
-        if (!loaded_) {
-            std::this_thread::yield();
-            continue;
-        }
+        std::this_thread::yield();
         if (terminating) {
             return;
         }
-        quota_ = TimeSlice();
-        currentSlice_ = quota_ * quotaPercent_;
-        while (!terminating) {
-            if (!CheckCurrent()) {
-                break;
-            }
+    quota_ = TimeUnit() * quotaPercent_;
+    currentSlice_ = quota_ ;
+    while (!terminating) {
+        auto begin = UpdateTimestamp();
+        if (!CheckCurrent()) {
             std::this_thread::yield();
         }
+        std::this_thread::yield();
 #ifdef UNIT_TEST
-        if (periodBreak) {
             break;
-        }
+#else
+            continue;
 #endif
-        continue;
-        auto now = ExecuteTimeslice(begin);
-        auto overTime = now - begin - currentSlice_;
-        ExecuteIdleTime(quota_);
-#ifdef UNIT_TEST
-        if (periodBreak) {
-            break;
         }
+        auto end = ExecuteTimeslice(begin);
+        auto overdraft = end - begin - currentSlice_;
+        currentSlice_ = quota_ - overdraft;
+        ExecuteIdleTime();
+        ReleaseCurrent();
+#ifdef UNIT_TEST
+        break;
 #endif
     }
 }

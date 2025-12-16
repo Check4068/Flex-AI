@@ -19,26 +19,16 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"huawei.com/vxpu-device-plugin/pkg/log"
-	"huawei.com/xpu-export/collector/gpuservice"
-	"huawei.com/xpu-export/collector/npuservice"
-	"huawei.com/xpu-export/versions"
+	"huawei.com/xpu-exporter/collector/gpuservice"
+	"huawei.com/xpu-exporter/collector/npuservice"
+	"huawei.com/xpu-exporter/server"
+	"huawei.com/xpu-exporter/versions"
 )
 
 var (
 	updateTime int
 	xpuType string
 )
-
-// ExporterServer 定义 Prometheus Exporter 服务器的配置和状态
-// 注意：这个结构体需要在 server 包中定义，或者在本文件中定义
-type ExporterServer struct {
-	Port          int    // HTTP 服务端口
-	Ip            string // 监听 IP 地址
-	Concurrency   int    // 最大并发数
-	LimitIPConn   int    // 每个 IP 的 TCP 连接限制
-	LimitTotalConn int   // 总 TCP 连接限制
-	LimitIPReq    string // 每个 IP 的 HTTP 请求限制（格式：次数/秒）
-}
 
 const (
 	exporterServerPort = 8082                   // 默认 HTTP 服务端口

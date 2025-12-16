@@ -36,8 +36,7 @@ public:
     clock::time_point UpdateTimestamp();
     bool CheckCurrent();
     void ReleaseCurrent();
-    bool CheckCurrentIsValid(bool &terminating);
-    void InvalidationTimesUnit();
+    void SchedulerThread(bool &terminating);
     bool IsValid();
     clock::duration timeUnit();
 
@@ -46,21 +45,22 @@ TESTABLE_PRIVATE:
     using AtomicTimestamp = std::atomic<Clock::time_point>;
     constexpr static int MAGIC_NUMBER_INIT = ('i' << 24) | ('n' << 16) | ('i' << 8) | 't';
     constexpr static int MAGIC_NUMBER = ('v' << 24) | ('M' << 16) | ('P' << 8) | 'U';
-    constexpr static int PERIOD_UNIT_NUMBER = 9000;
-    constexpr static int MTN_COMPUTE_POWER = 300;
+    constexpr static int PERIOD_UNIT_NUMBER = 100;
+    constexpr static int MTN_COMPUTE_POWER = 5;
     constexpr static int MAX_NODE_NUMBER = PERIOD_UNIT_NUMBER / MTN_COMPUTE_POWER;
-    // 调度器的周期, 用时钟轮转换过来的单位 = std::chrono::milliseconds(1);
-    constexpr static Clock::duration TIME_UNIT = std::chrono::milliseconds(1);
-    // 占用时间超过PERIOD_TIMEOUT后优化成current节点清晰)
-    constexpr static auto PERIOD_TIMEOUT = std::chrono::seconds(1);
-    // 出错的时候用
+    // 调度轮询时间单位
+    constexpr static clock::duration TIME_UNIT = std::chrono::milliseconds(1);
+    // 调度轮询周期，用于时间片轮转时过滤未占用节点
+    constexpr static auto PERIOD_TIMEOUT = TIME_UNIT * PERIOD_UNIT_NUMBER;
+    // 占用超时时间，用于从死亡等待中恢复（初始化失败或current节点崩溃）
     constexpr static auto ERROR_CHECK_TIMEOUT = std::chrono::seconds(1);
+
     struct Context {
         struct Node {
             AtomicTimestamp periodCheck;
         };
         std::atomic<uint32_t> magicNumber;
-        Clock::duration timeUnit;
+        clock::duration timeUnit;
         unsigned int usedUnits;
         std::atomic<int> current;
         Node nodes[MAX_NODE_NUMBER];
@@ -69,14 +69,14 @@ TESTABLE_PRIVATE:
     int idx_;
     Context *context_;
     
-    Clock::duration currentSlice_;
-    Clock::duration quota_;
+    clock::duration currentSlice_;
+    clock::duration quota_;
     unsigned int quotaPercent_;
     unsigned int lastUsedUnits_ = 0;
     bool lastUsedUnitsValid_ = false;
     
     void SelectNewCurrent();
-    Clock::time_point ExecuteTimeslice(Clock::time_point begin);
+    clock::time_point ExecuteTimeslice(Clock::time_point begin);
     void ExecuteIdleTime();
 
 public:

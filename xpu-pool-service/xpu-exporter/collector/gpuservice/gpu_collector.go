@@ -17,7 +17,7 @@ import (
 	"huawei.com/xpu-exporter/common/cache"
 	"huawei.com/xpu-exporter/common/client"
 	"huawei.com/xpu-exporter/common/utils"
-	"huawei.com/xpu-exporter/version"
+	"huawei.com/xpu-exporter/versions"
 )
 
 const (

@@ -51,7 +51,7 @@
  
  int AclMonitorMain(int argc, char *argv[])
  {
-    logInit("npu-monitor", "0");
+    LogInit("npu-monitor", "0");
     Args args;
     NpuManager npu;
     ResourceConfig config(npu);

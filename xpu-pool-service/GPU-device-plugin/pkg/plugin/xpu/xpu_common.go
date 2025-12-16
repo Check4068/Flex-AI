@@ -18,6 +18,6 @@ type Device struct {
 
 // IDeviceManager provides an interface for listing a set of Devices and checking health on them
 type IDeviceManager interface {
-	Device() []*Device
+	Devices() []*Device
 	CheckHealth(stop <-chan interface{}, devices []*Device, unhealthy chan<- *Device)
 }
