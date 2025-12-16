@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <string>
+#include "common.h"
 #include "file_lock.h"
 #include "xpu_manager.h"
 #include "resource_config.h"
@@ -13,14 +14,12 @@
 class MemoryLimiter {
 public:
     struct Guard {
+        FileLock lock;
         bool enough;
-        bool error;
-        Guard() : enough(false), error(false) {}
-        bool Held() const
+        bool Error()
         {
             return !lock.Held();
         }
-        FileLock lock;
     };
 
     Guard GuardedMemoryCheck(size_t requested);
@@ -28,17 +27,17 @@ public:
     MemoryLimiter(ResourceConfig &config, XpuManager &xpu) : config_(config), xpu_(xpu)
     {}
     int Initialize();
-    TESTABLE_PRIVATE:
+TESTABLE_PROTECTED:
     bool MemoryCheck(size_t requested);
     const std::string_view LockPath()
     {
         return MEMCTL_LOCK_PATH;
     }
 
-private:
+TESTABLE_PRIVATE:
     int CreateFileLockBaseDir();
 
-    const std::string FILELOCK_BASE_DIR = "/tmp/xpu/";
+    const std::string FILELOCK_BASE_DIR = "/run/xpu/";
     const std::string MEMCTL_LOCK_PATH = FILELOCK_BASE_DIR + "memctl.lock";
     ResourceConfig &config_;
     XpuManager &xpu_;

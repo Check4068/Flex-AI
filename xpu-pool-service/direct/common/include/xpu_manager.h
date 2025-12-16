@@ -15,7 +15,6 @@ public:
     virtual int CurrentDevice() = 0;
     virtual int MemoryUsed(size_t &used) = 0;
     virtual std::string_view ConfigPath() = 0;
-    virtual void LogDeviceIndex(int idx) = 0;
     bool CheckDeviceIndex(int idx)
     {
         return idx >= 0 && idx < DeviceCount();

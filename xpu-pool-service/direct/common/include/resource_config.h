@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <string>
+#include "common.h"
 #include "xpu_manager.h"
 
 class ResourceConfig {

@@ -55,5 +55,6 @@ FileLock::~FileLock()
     }
     if (close(fd_) == -1) {
         log_err("close file failed, fd {%d}, errno is {%d}, %s", fd_, strerror(errno));
+        return;
     }
 }

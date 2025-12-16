@@ -11,24 +11,22 @@ class Sem {
 public:
     explicit Sem(int count = 0) : count_(count)
     {}
-    explicit Sem(unsigned int count = 1) : count_(static_cast<int>(count))
-    {}
 
-    void Release(int lockstd = 1)
+    void Release(int count = 1)
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        count_ += lockstd;
+        count_ += count;
         cv_.notify_all();
     }
 
-    void Acquire(int count = 1)
+    void Aquire(int count = 1)
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [&] { return count_ >= count; });
+        cv_.wait(lock, [=] { return count_ >= count; });
         count_ -= count;
     }
 
-    int AcquireAll()
+    int AquireAll()
     {
         std::unique_lock<std::mutex> lock(mutex_);
         int count = count_;
@@ -37,13 +35,13 @@ public:
     }
 
     template <class Rep, class Period>
-    bool TryAcquire(int count = 1, const std::chrono::duration<Rep, Period>& waitMax = {})
+    bool TryAquireFor(int count = 1, const std::chrono::duration<Rep, Period> &waitMax = 0)
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        if ((waitMax == waitMax.zero()) && count_ < count) {
+        if (waitMax == waitMax.zero() && count_ < count) {
             return false;
         }
-        return cv_.wait_for(lock, waitMax, [&] { return count_ >= count; });
+        return cv_.wait_for(lock, waitMax, [=] { return count_ >= count; });
     }
 
 private:

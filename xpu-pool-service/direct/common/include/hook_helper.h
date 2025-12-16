@@ -10,9 +10,11 @@
     tracepoint \
     static decltype(function) * const original = \
         reinterpret_cast<decltype(function) *>(dlsym(RTLD_NEXT, #function)); \
+        \
+        {
 
-#define FUNC_HOOK_END }
+#define FUNC_HOOK_END }}
 
-#define PROC_ADDR_PAIR(function) (dlsym(RTLD_NEXT, #function)), reinterpret_cast<void *>(&function)
+#define PROC_ADDR_PAIR(function) {dlsym(RTLD_NEXT, #function), reinterpret_cast<void *>(&function)}
 
 #endif
