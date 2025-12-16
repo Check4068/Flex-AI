@@ -1,7 +1,7 @@
 #ifndef CUDA_RESOURCE_LIMITER_H
 #define CUDA_RESOURCE_LIMITER_H
 
-#include "gpu_manage.h"
+#include "gpu_manager.h"
 #include "memory_limiter.h"
 #include "resource_config.h"
 #include "gpu_core_limiter.h"
@@ -9,11 +9,11 @@
 class CudaResourceLimiter
 {
 public:
-  static CudaResourceLimiter& instance();
+  static CudaResourceLimiter &Instance();
 
   void Initialize();
   void ComputingPowerLimiter();
-  bool LimitMemory();
+  bool LimitMemory() const;
   size_t MemoryQuota() const;
   int MemoryUsed(size_t &used);
   MemoryLimiter::Guard GuardedMemoryCheck(size_t requested);
@@ -25,7 +25,7 @@ TESTABLE_PRIVATE:
   GpuManager gpu_;
   ResourceConfig config_;
   MemoryLimiter mem_;
-  GpUCoreLimiter core_;
+  GpuCoreLimiter core_;
 };
 
 #endif

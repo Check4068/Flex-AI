@@ -21,7 +21,7 @@ int GpuManager::InitXpu()
 
 int GpuManager::CurrentDevice() {
   CUdevice dev;
-  auto ret = cuCtxGetCurrent(&dev);
+  auto ret = cuCtxGetDevice(&dev);
   if (ret != CUDA_SUCCESS) {
     return INVALID_DEVICE_IDX;
   }
@@ -32,12 +32,12 @@ nvmlDevice_t GpuManager::GetNvmlHandle(int idx) {
   if (!CheckDeviceIndex(idx)) {
     return INVALID_NVML_HANDLE;
   }
-  std::call_once(handleMapInit_, &GPUManager::InitDeviceMap, this);
+  std::call_once(handleMapInit_, &GpuManager::InitDeviceMap, this);
   return nvmlDevice_[idx];
 }
 
 int GpuManager::GetCudaDeviceId(CUdevice dev) {
-  std::call_once(handleMapInit_, &GPUManager::InitDeviceMap, this);
+  std::call_once(handleMapInit_, &GpuManager::InitDeviceMap, this);
   auto iter = cuDevice_.find(dev);
   if (iter == cuDevice_.end()) {
     return INVALID_DEVICE_IDX;
@@ -51,7 +51,7 @@ int GpuManager::InitDeviceMap() {
   if (res != CUDA_SUCCESS) {
     return RET_FAIL;
   }
-  if (count < 0 || count > MAX_DEVICE_COUNT) {
+  if (count < 0 || count > XpuManager::MAX_DEVICE_COUNT) {
     return RET_FAIL;
   }
 
@@ -82,7 +82,7 @@ int GpuManager::InitDeviceMap() {
 
 int GpuManager::MemoryUsed(size_t &used) {
   nvmlDevice_t dev = GetCurrNvmlHandle();
-  if (dev == GPUManager::INVALID_NVML_HANDLE) {
+  if (dev == GpuManager::INVALID_NVML_HANDLE) {
     return RET_FAIL;
   }
 
@@ -105,7 +105,7 @@ int GpuManager::MemoryUsed(size_t &used) {
 
 int GpuManager::ComputingPowerUsed(int idx, unsigned int &used) {
   nvmlDevice_t dev = GetNvmlHandle(idx);
-  if (dev == GPUManager::INVALID_NVML_HANDLE) {
+  if (dev == GpuManager::INVALID_NVML_HANDLE) {
     return RET_FAIL;
   }
 

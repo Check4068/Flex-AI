@@ -2,7 +2,7 @@ using namespace xpu;
 
 #include "cuda_resource_limiter.h"
 
-CudaResourceLimiter& CudaResourceLimiter::instance()
+CudaResourceLimiter& CudaResourceLimiter::Instance()
 {
   static CudaResourceLimiter limiter;
   return limiter;
