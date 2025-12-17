@@ -1,6 +1,3 @@
-using namespace std;
-using namespace xpu;
-
 #include <climits>
 #include <fstream>
 #include <filesystem>
@@ -8,8 +5,11 @@ using namespace xpu;
 #include <thread>
 #include <cerrno>
 #include <unistd.h>
-#include "resigter.h"
+#include "register.h"
 #include "pid_manager.h"
+
+using namespace std;
+using namespace xpu;
 
 int PidManager::Initialize()
 {
@@ -26,6 +26,7 @@ int PidManager::Refresh() {
   const string pidsPath(PidsPath());
   ifstream file(pidsPath);
   if (!file.is_open()) {
+    FileOperateErrorHandler(file, pidsPath);
     return RET_FAIL;
   }
 

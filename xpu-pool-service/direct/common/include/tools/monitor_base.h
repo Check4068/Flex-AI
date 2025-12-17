@@ -15,7 +15,7 @@ namespace xpu {
 enum class OutputFormat : char {
     NONE = '\0',
     TABLE = 't',
-    JSON = 'j'
+    JSON = 'j',
 };
 
 enum class VxpuType : char {
@@ -25,7 +25,7 @@ enum class VxpuType : char {
 
 constexpr int PERIOD_DEFAULT = 60;   // one minute
 constexpr int PERIOD_MIN = 1;        // one second
-constexpr int PERIOD_MAX = 1024 * 60 * 24; // one day
+constexpr int PERIOD_MAX = 60 * 60 * 24; // one day
 constexpr int MAX_PIDS = 1024;
 
 struct Args {
@@ -33,8 +33,9 @@ struct Args {
     OutputFormat format = OutputFormat::TABLE;
 };
 
-int ParseArgs(Args& args, int argc, char const* argv[]);
+int ParseArgs(Args& args, int argc, char const *argv[]);
 
+struct VxpuFormatter {
 struct VxpuFormatter {
     OutputFormat format = OutputFormat::NONE;
 
@@ -94,7 +95,7 @@ struct ContainerVxpuInfo {
     {}
 };
 
-// namespace xpu
+}// namespace xpu
 template <>
 class fmt::formatter<std::pair<uint32_t, xpu::ProcessInfo>> : public xpu::VxpuFormatter {
 public:

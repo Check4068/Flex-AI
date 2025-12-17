@@ -8,7 +8,7 @@ fi
 for path_candidate in "/usr/lib64" "${ASCEND_HOME_PATH}/lib64"; do
     if [ -e "${path_candidate}/lib$1.so" ]; then
         path=$path_candidate
-        break
+        break;
     fi
 done
 
@@ -17,7 +17,7 @@ if [ ! -d "$path" ]; then
     exit 1
 fi
 
-sep=${2:-}
+sep=${2:--}
 backup_path=/opt/xpu/bak
 mkdir -p $backup_path
 backup_file=$backup_path/lib$1-backup.so
@@ -29,6 +29,7 @@ function make_lib_backup() {
     [ -e $backup_file ] && return
     readlink $original_file -f | grep "lib$1\\.so" || exit 1
     cp $original_file $backup_file
+    ls $backup_file
 }
 
 function make_lib_original() {

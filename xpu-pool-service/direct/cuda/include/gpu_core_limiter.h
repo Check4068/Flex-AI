@@ -8,13 +8,13 @@
 #include "resource_config.h"
 #include "gpu_manager.h"
 
-class GPUCoreLimiter {
+class GpuCoreLimiter {
 public:
     int Initialize();
   void ComputingPowerLimiter();
   GpuCoreLimiter(ResourceConfig &config, GpuManager &gpu) : config_(config), gpu_(gpu)
   {}
-  ~GPUCoreLimiter();
+  ~GpuCoreLimiter();
 
 TESTABLE_PROTECTED:
   void ComputingPowerWatcherThread();
@@ -28,9 +28,9 @@ TESTABLE_PROTECTED:
 
   class PidController {
   public:
-	float Kp;
-	float Ki;
-	float Kd;
+	float kp;
+	float ki;
+	float kd;
 	int prevDiff1;
 	int prevDiff2;
 	int coeffDouble;
@@ -41,7 +41,7 @@ TESTABLE_PRIVATE:
   // 1/6s
   constexpr static auto UPDATE_PERIOD = std::chrono::milliseconds(167);
   constexpr static int MAX_DELAY = MICROSEC;
-  constexpr static int BOUNDARY_LIMITE = 10;
+  constexpr static int BOUNDARY_LIMIT = 10;
 
   PidController pidController_;
   ResourceConfig &config_;

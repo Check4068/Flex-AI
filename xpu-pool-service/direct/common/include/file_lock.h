@@ -10,12 +10,12 @@ class FileLock {
 public:
     FileLock(const std::string_view path, int operation);
     FileLock(const FileLock& other) = delete;
+    FileLock& operator=(const FileLock& other) = delete;
     FileLock(FileLock&& other) noexcept : fd_(other.fd_), held_(other.held_)
     {
         other.fd_ = INVALID_FD;
         other.held_ = false;
     }
-    FileLock& operator=(const FileLock& other) = delete;
     FileLock& operator=(FileLock&& other) noexcept
     {
         FileLock temp(std::move(other));
@@ -25,7 +25,7 @@ public:
     }
     ~FileLock();
 
-    bool HoldLock();
+    bool Acquire();
     bool Release();
     bool Held() const
     {
@@ -33,7 +33,7 @@ public:
     }
 
 private:
-    static constexpr int INVALID_FD = -1;
+    constexpr static int INVALID_FD = -1;
     int fd_;
     bool held_;
 };

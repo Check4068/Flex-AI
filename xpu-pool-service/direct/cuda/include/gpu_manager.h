@@ -10,17 +10,17 @@
 #include "common.h"
 #include "xpu_manager.h"
 
-class GPUManager : public XpuManager {
+class GpuManager : public XpuManager {
 public:
-  GPUManager() : pid(CONFIG_BASE_DIR)
+  GpuManager() : pid_(CONFIG_BASE_DIR)
   {}
   int InitXpu() override;
   int ComputingPowerUsed(int idx, unsigned int &used);
   int MemoryUsed(size_t &used) override;
   int CurrentDevice() override;
   int DeviceCount() override {
-    std::call_once(handleMapInit_, &GPUManager::InitDeviceMap, this);
-    return devCnt;
+    std::call_once(handleMapInit_, &GpuManager::InitDeviceMap, this);
+    return devCnt_;
   }
   std::string_view ConfigPath() override {
     return VGPU_ConfigPath();

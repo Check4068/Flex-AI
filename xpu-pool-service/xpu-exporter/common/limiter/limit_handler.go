@@ -18,7 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	"huawei.com/vxpu-device-plugin/pkg/log"
 	"huawei.com/xpu-exporter/common/cache"
 	"huawei.com/xpu-exporter/common/utils"
 )
@@ -26,7 +25,7 @@ import (
 const (
 	kilo = 1000.0
 	// DefaultDataLimit default http body limit size
-	DefaultDataLimit     = 1024 * 1024 * 10
+	DefaultDataLimit      = 1024 * 1024 * 10
 	defaultMaxConcurrency = 1024
 	httpMaxWaitTime       = 5
 	maxStringLen          = 20
@@ -39,15 +38,15 @@ const (
 )
 
 type limitHandler struct {
-	concurrency     chan struct{}
-	httpHandler     http.Handler
-	log             bool
-	method          string
-	limitBytes      int64
-	ipExpiredTime   time.Duration
-	ipCache         *cache.ConcurrencyLRUCache
+	concurrency       chan struct{}
+	httpHandler       http.Handler
+	log               bool
+	method            string
+	limitBytes        int64
+	ipExpiredTime     time.Duration
+	ipCache           *cache.ConcurrencyLRUCache
 	ipRequestCounters map[string]*ipRequestCounter
-	mu              sync.Mutex
+	mu                sync.Mutex
 }
 
 type ipRequestCounter struct {
@@ -89,7 +88,7 @@ func (h *limitHandler) checkIPRequestLimit(clientIP, path string, req *http.Requ
 	if !exists {
 		counter = &ipRequestCounter{
 			requests: 0,
-			timer:    time.AfterFunc(time.Minute, func() {
+			timer: time.AfterFunc(time.Minute, func() {
 				h.mu.Lock()
 				delete(h.ipRequestCounters, clientIP)
 				h.mu.Unlock()
@@ -99,7 +98,6 @@ func (h *limitHandler) checkIPRequestLimit(clientIP, path string, req *http.Requ
 	}
 
 	if counter.requests >= MaxIPRequestsPerMinute {
-		log.Warningf("IP request limit exceeded:%s: %s <%3d> |%15s |%s |%d ", req.Method, path, http.StatusTooManyRequests, clientIP, req.UserAgent(), syscall.Getuid())
 		return false
 	}
 	counter.requests++
@@ -120,8 +118,7 @@ func (h *limitHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if clientIP != "" && h.ipCache != nil {
-		if h.ipCache.SetIfNotExist(fmt.Sprintf("key-%s", clientIP), "v", h.ipExpiredTime) {
-			log.Warningf("Single IP request reject:%s: %s <%3d> |%15s |%s |%d ", req.Method, path, http.StatusServiceUnavailable, clientIP, clientUserAgent, syscall.Getuid())
+		if !h.ipCache.SetIfNotExist(fmt.Sprintf("key-%s", clientIP), "v", h.ipExpiredTime) {
 			http.Error(w, "503 too busy", http.StatusServiceUnavailable)
 			return
 		}
@@ -138,7 +135,6 @@ func (h *limitHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			h.concurrency <- struct{}{} // recover token to the bucket
 			return
 		}
-		log.Infof("token count:%d", len(h.concurrency))
 		cancCtx, cancelFunc := context.WithCancel(ctx)
 		start := time.Now()
 		go returnToken(cancCtx, h.concurrency)
@@ -149,21 +145,14 @@ func (h *limitHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if stop < httpMaxWaitTime*time.Second {
 			h.concurrency <- struct{}{}
 		}
-		latency := int(math.Ceil(float64(stop.Nanoseconds()) / kilo / kilo))
-		if h.log {
-			log.Infof("%s %s: %s <%3d> |%15s |%s |%d ", req.Proto, req.Method, path, statusRes.Status, latency, clientIP, clientUserAgent, syscall.Getuid())
-		}
 	default:
-		log.Warningf("Total reject request:%s: %s <%3d> |%15s |%s |%d ", req.Method, path, http.StatusServiceUnavailable, clientIP, clientUserAgent, syscall.Getuid())
 		http.Error(w, "503 too busy", http.StatusServiceUnavailable)
 	}
 }
 
 func newResponse(w http.ResponseWriter) *StatusResponseWriter {
-	jk, ok := w.(http.Hijacker)
-	if !ok {
-		log.Warningln("hijack not implement")
-	}
+	jk, _ := w.(http.Hijacker)
+
 	statusRes := &StatusResponseWriter{
 		ResponseWriter: w,
 		Status:         http.StatusOK,
@@ -179,17 +168,10 @@ func initContext(req *http.Request) context.Context {
 
 // returnToken returns the token back to the concurrency channel after timeout or cancellation.
 func returnToken(ctx context.Context, concurrency chan struct{}) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Errorf("go routine failed with %v", err)
-		}
-	}()
-
 	// If a request is processed for more than 5s(httpMaxWaitTime),
 	// the token must be returned to prevent the HTTP service from being unavailable.
 	timeAfterTrigger := time.After(time.Second * httpMaxWaitTime)
 	if concurrency == nil || timeAfterTrigger == nil {
-		log.ErrorIn("return token error")
 		return
 	}
 
@@ -200,13 +182,8 @@ func returnToken(ctx context.Context, concurrency chan struct{}) {
 				return
 			}
 			concurrency <- struct{}{}
-			log.Infof("recover token num:%d", len(concurrency))
 			return
-		case _, ok := <-ctx.Done():
-			err := ctx.Err()
-			if !ok || err != nil {
-				log.Infof("%+v:%+v", err, ok)
-			}
+		case _, _ = <-ctx.Done():
 			return
 		}
 	}
@@ -214,12 +191,12 @@ func returnToken(ctx context.Context, concurrency chan struct{}) {
 
 func createHandler(ch chan struct{}, handler http.Handler, printLog bool, httpMethod string, bodySizeLimit int64) *limitHandler {
 	h := &limitHandler{
-		concurrency:     ch,
-		httpHandler:     handler,
-		log:             printLog,
-		method:          httpMethod,
-		limitBytes:      bodySizeLimit,
-		ipExpiredTime:   time.Duration(-1),
+		concurrency:       ch,
+		httpHandler:       handler,
+		log:               printLog,
+		method:            httpMethod,
+		limitBytes:        bodySizeLimit,
+		ipExpiredTime:     time.Duration(-1),
 		ipRequestCounters: make(map[string]*ipRequestCounter),
 	}
 	for i := 0; i < cap(ch); i++ {
@@ -239,7 +216,6 @@ func NewLimitHandler(handler http.Handler, conf *HandlerConfig) (http.Handler, e
 		return nil, errors.New("http method error")
 	}
 	if conf.CacheSize <= 0 {
-		log.Infoln("use default cache size")
 		conf.CacheSize = DefaultCacheSize
 	}
 
@@ -265,7 +241,7 @@ func NewLimitHandler(handler http.Handler, conf *HandlerConfig) (http.Handler, e
 	if err != nil || arr0 == 0 {
 		return nil, fmt.Errorf("IPConcurrency parameter(%s) error, parse to int failed: %v", arr[0], err)
 	}
-	h.ipExpiredTime = time.Duration(arr1*int64(time.Second))/arr0
+	h.ipExpiredTime = time.Duration(arr1 * int64(time.Second) / arr0)
 
 	return h, nil
 }

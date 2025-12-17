@@ -1,4 +1,3 @@
-# 完整go.sum内容
 gitee.com/ascend/ascend-npu-exporter/v6 v6.0.0-RC2.b001 h1:blV6AabFyBpyeBvRcJQmP8a1MiF5Zv/U+r+yR0K3sTg=
 gitee.com/ascend/ascend-npu-exporter/v6 v6.0.0-RC2.b001/go.mod h1:tQw2uk5V7z1XJWa5cDF8TmCTibieor69lsdHFEiMZB=
 github.com/agiledragon/gomonkey/v2 v2.8.0 h1:uZhnNpAIpDmzIc21va11E9BtDgotsaLE6000bBf4w2iY=

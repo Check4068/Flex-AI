@@ -91,7 +91,7 @@ CUresult FUNC_HOOK_BEGIN(cuDriverGetVersion, int *driverVersion)
 FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuInit, unsigned int Flags)
-  CudaResourceLimiter::instance().Initialize();
+  CudaResourceLimiter::Instance().Initialize();
   return original(Flags);
 FUNC_HOOK_END
 
@@ -99,7 +99,7 @@ CUresult FUNC_HOOK_BEGIN(cuGetProcAddress, const char *symbol, void **pfn, int c
                            cuuint64_t flags)
   CudaResourceLimiter::Instance().Initialize();
   viod *fnPtr = nullptr;
-  Curesult ret = original(symbol, &fnPtr, cudaVersion, flags);
+  CUresult ret = original(symbol, &fnPtr, cudaVersion, flags);
   auto pair = g_hookedProc.find(fnPtr);
   if (pair != g_hookedProc.end()) {
     *pfn = pair->second;
@@ -126,7 +126,7 @@ FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuMemAllocManaged, CUdeviceptr *dptr, size_t bytesize, unsigned int flags)
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(bytesize);
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -137,7 +137,7 @@ FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuMemAlloc_v2, CUdeviceptr *dptr, size_t bytesize)
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(bytesize);
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -148,7 +148,7 @@ FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuMemAlloc, CUdeviceptr_v1 *dptr, unsigned int bytesize)
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(bytesize);
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -160,8 +160,8 @@ FUNC_HOOK_END
 CUresult FUNC_HOOK_BEGIN(cuMemAllocPitch, CUdeviceptr_v1 *dptr, unsigned int *pPitch, unsigned int WidthInBytes,
                          unsigned int Height, unsigned int ElementSizeBytes)
   unsigned int bytesize = RoundUp(WidthInBytes * Height, ElementSizeBytes);
-  auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(WidthInBytes * Height);
-  if (!memGuard.Error()) {
+  auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(bytesize);
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -174,7 +174,7 @@ CUresult FUNC_HOOK_BEGIN(cuMemAllocPitch_v2, CUdeviceptr *dptr, size_t *pPitch, 
                          size_t Height, unsigned int ElementSizeBytes)
   size_t bytesize = RoundUp(WidthInBytes * Height, ElementSizeBytes);
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(bytesize);
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -184,8 +184,8 @@ CUresult FUNC_HOOK_BEGIN(cuMemAllocPitch_v2, CUdeviceptr *dptr, size_t *pPitch, 
 FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuArrayCreate, CUarray *pHandle, const CUDA_ARRAY_DESCRIPTOR_v1 *pAllocateArray)
-  auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(bytesize);
-  if (!memGuard.Error()) {
+  auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(CalCuarraySize(pAllocateArray));
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -196,7 +196,7 @@ FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuArrayCreate_v2, CUarray *pHandle, const CUDA_ARRAY_DESCRIPTOR *pAllocateArray)
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(CalCuarraySize(pAllocateArray));
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -207,7 +207,7 @@ FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuArray3DCreate, CUarray *pHandle, const CUDA_ARRAY3D_DESCRIPTOR_v1 *pAllocateArray)
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(CalCuarray3dSize(pAllocateArray));
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -218,7 +218,7 @@ FUNC_HOOK_END
 
 CUresult FUNC_HOOK_BEGIN(cuArray3DCreate_v2, CUarray *pHandle, const CUDA_ARRAY3D_DESCRIPTOR *pAllocateArray)
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(CalCuarray3dSize(pAllocateArray));
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -230,7 +230,7 @@ FUNC_HOOK_END
 CUresult FUNC_HOOK_BEGIN(cuMipmappedArrayCreate, CUmipmappedArray *pHandle, const CUDA_ARRAY3D_DESCRIPTOR *pMipmappedArrayDesc,
     unsigned int numMipmapLevels)
   auto memGuard = CudaResourceLimiter::Instance().GuardedMemoryCheck(CalCuarray3dSize(pMipmappedArrayDesc));
-  if (!memGuard.Error()) {
+  if (memGuard.Error()) {
     return CUDA_ERROR_UNKNOWN;
   }
   if (!memGuard.enough) {
@@ -255,7 +255,7 @@ CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem_v2, size_t *bytes, CUdevice dev)
   return original(bytes, dev);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cumemGetInfo, unsigned int *free, unsigned int *total)
+CUresult FUNC_HOOK_BEGIN(cuMemGetInfo, unsigned int *free, unsigned int *total)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     size_t used;
     int ret = CudaResourceLimiter::Instance().MemoryUsed(used);
@@ -269,7 +269,7 @@ CUresult FUNC_HOOK_BEGIN(cumemGetInfo, unsigned int *free, unsigned int *total)
   return original(free, total);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cumemGetInfo_v2, size_t *free, size_t *total)
+CUresult FUNC_HOOK_BEGIN(cuMemGetInfo_v2, size_t *free, size_t *total)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     size_t used;
     int ret = CudaResourceLimiter::Instance().MemoryUsed(used);
@@ -302,12 +302,17 @@ CUresult FUNC_HOOK_BEGIN(cuLaunchKernel_ptsz, CUfunction f, unsigned int gridDim
   return original(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuLaunchKernelEx, const CUDA_LAUNCH_Config *launchConfig, CUfunction f, void **kernelParams, void **extra)
+CUresult FUNC_HOOK_BEGIN(cuLaunch, CUfunction f)
+  CudaResourceLimiter::Instance().ComputingPowerLimiter();
+  return original(f);
+FUNC_HOOK_END
+
+CUresult FUNC_HOOK_BEGIN(cuLaunchKernelEx, const CUlaunchConfig *launchConfig, CUfunction f, void **kernelParams, void **extra)
   CudaResourceLimiter::Instance().ComputingPowerLimiter();
   return original(launchConfig, f, kernelParams, extra);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuLaunchKernelEx_ptsz, const CUDA_LAUNCH_Config *launchConfig, CUfunction f, void **kernelParams, void **extra)
+CUresult FUNC_HOOK_BEGIN(cuLaunchKernelEx_ptsz, const CUlaunchConfig *launchConfig, CUfunction f, void **kernelParams, void **extra)
   CudaResourceLimiter::Instance().ComputingPowerLimiter();
   return original(launchConfig, f, kernelParams, extra);
 FUNC_HOOK_END
@@ -342,7 +347,7 @@ CUresult FUNC_HOOK_BEGIN(cuLaunchGridAsync, CUfunction f, int grid_width, int gr
   return original(f, grid_width, grid_height, hStream);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuGridLaunch, CUgraphExec hGraphExec, CUstream hStream)
+CUresult FUNC_HOOK_BEGIN(cuGraphLaunch, CUgraphExec hGraphExec, CUstream hStream)
   CudaResourceLimiter::Instance().ComputingPowerLimiter();
   return original(hGraphExec, hStream);
 FUNC_HOOK_END

@@ -29,11 +29,11 @@ const static string RPC_CLIENT_NAME = "xpu-client-tool";
 const static string RPC_CLIENT_PATH = "/opt/xpu/bin/xpu-client-tool";
 const static int TRY_TIMES = 10;
 
-void FileOperateErrorHandler(const std::istream& file, const string &path)
+void FileOperateErrorHandler(const std::ifstream &file, const string &path)
 {
     if (file.bad()) {
         log_err("I/O error while reading file {%s}", path);
-    } else if (!file.eof()) {
+    } else if (file.eof()) {
         log_err("File {} reached the end", path);
     } else if (!file.fail()) {
         log_err("Non-fatal error occurred while opening {}", path);
@@ -144,12 +144,13 @@ bool IsDangerousCommand(const string& command)
 */
 bool CheckCgroupData(const string &groupData)
 {
-    const string podIdReg = "kubepods-p([0-9a-f]{8})\\.slice";
-    const string containerId = "/(cri-containerd|docker)-([0-9a-f]{64})\\.scope";
-    regex patternSystemdQos("^/(containerd\\.slice/)?kubepods\\.slice/" + podIdReg + containerId + "$");
-    regex patternSystemdBasic("^/(containerd\\.slice/)?kubepods\\.slice/" + containerId + "$");
-    regex patternGroupsQos("^/kubepods/([a-z0-9]+)/pod([a-f0-9]{8})/([a-f0-9]{64})$");
-    regex patternGroupsBasic("^/kubepods/([a-z0-9]+)/([a-f0-9]{8})/([a-f0-9]{64})$");
+    const string podIdReg = "/kubepods-[a-z]{9,10}-pod[a-f0-9_]{36}\\.slice";
+    const string podIdBasic = "kubepods-pod[a-f0-9_]{36}\\.slice";
+    const string containerId = "/(cri-containerd|docker)-[0-9a-f]{64}\\.scope";
+    regex patternSystemdQos("^/kubepods\\.slice/kubepods-[a-z]{9,10}\\.slice" + podIdReg + containerId + "$");
+    regex patternSystemdBasic("^/kubepods\\.slice/" + podIdBasic + containerId + "$");
+    regex patternGroupsQos("^/(container\\.slice/kubepods|kubepods)/pod[a-f0-9-]{36}/[a-f0-9]{64}$");
+    regex patternGroupsBasic("^/(container\\.slice/kubepods|kubepods)/[a-z]{9-10}/pod[a-f0-9-]{36}/[a-f0-9]{64}$");
 
     if (regex_match(groupData, patternSystemdQos)) {
         log_info("check qos format success: {%s}", groupData);
@@ -177,7 +178,7 @@ int RegisterToDevicePlugin(void)
     int ret = GetCgroupData(PROC_CGROUP_PATH, groupData);
     if (ret != RET_SUCC) {
         log_err("get cgroup data failed, ret is {%d}", ret);
-        return RET_FAIL;
+        return ret;
     }
 
     for (int i = 0; i < TRY_TIMES; i++) {

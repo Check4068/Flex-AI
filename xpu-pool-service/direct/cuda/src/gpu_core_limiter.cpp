@@ -2,7 +2,7 @@
 
 using namespace xpu;
 
-int GPUCoreLimiter::Initialize()
+int GpuCoreLimiter::Initialize()
 {
   unsigned int upLimit = config_.ComputingPowerQuota();
   if (upLimit <= BOUNDARY_LIMIT) {
@@ -13,17 +13,17 @@ int GPUCoreLimiter::Initialize()
   return ComputingPowerWatcherInit();
 }
 
-void GPUCoreLimiter::ComputingPowerLimiter()
+void GpuCoreLimiter::ComputingPowerLimiter()
 {
   if (!config_.LimitComputingPower()) return;
 
   int delay = GetDelay(gpu_.CurrentDevice());
   if (delay != 0) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+    std::this_thread::sleep_for(std::chrono::microseconds(delay));
   }
 }
 
-int GPUCoreLimiter::GetDelay(int idx)
+int GpuCoreLimiter::GetDelay(int idx)
 {
   if (!gpu_.CheckDeviceIndex(idx)) {
     return MAX_DELAY;
@@ -31,7 +31,7 @@ int GPUCoreLimiter::GetDelay(int idx)
   return delay_[idx];
 }
 
-void GPUCoreLimiter::SetDelay(int idx, int delay)
+void GpuCoreLimiter::SetDelay(int idx, int delay)
 {
   if (!gpu_.CheckDeviceIndex(idx)) {
     return;
@@ -39,7 +39,7 @@ void GPUCoreLimiter::SetDelay(int idx, int delay)
   delay_[idx] = delay;
 }
 
-long GPUCoreLimiter::PidController::CalculateDelay(int diff)
+long GpuCoreLimiter::PidController::CalculateDelay(int diff)
 {
   long delay = lround(kp * (diff - prevDiff1) + ki * diff + kd * (diff - coeffDouble * prevDiff1 + prevDiff2));
   prevDiff2 = prevDiff1;
@@ -47,7 +47,7 @@ long GPUCoreLimiter::PidController::CalculateDelay(int diff)
   return delay;
 }
 
-int GPUCoreLimiter::UpdateDelay(int idx)
+int GpuCoreLimiter::UpdateDelay(int idx)
 {
   unsigned int used;
   int ret = gpu_.ComputingPowerUsed(idx, used);
@@ -69,7 +69,7 @@ int GPUCoreLimiter::UpdateDelay(int idx)
   return RET_SUCC;
 }
 
-void GPUCoreLimiter::ComputingPowerWatcherThread()
+void GpuCoreLimiter::ComputingPowerWatcherThread()
 {
   while (!watcherEnd_) {
     std::this_thread::sleep_for(UPDATE_PERIOD);
@@ -89,34 +89,34 @@ void GPUCoreLimiter::ComputingPowerWatcherThread()
   }
 }
 
-int GPUCoreLimiter::ComputingPowerWatcherInit()
+int GpuCoreLimiter::ComputingPowerWatcherInit()
 {
   if (!config_.LimitComputingPower()) {
     return RET_SUCC;
   }
-  if (watcher.joinable()) {
+  if (watcher_.joinable()) {
     return RET_SUCC;
   }
   try {
-    watcher_ = std::thread(&GPUCoreLimiter::ComputingPowerWatcherThread, this);
+    watcher_ = std::thread(&GpuCoreLimiter::ComputingPowerWatcherThread, this);
   } catch (const std::system_error &e) {
     return RET_FAIL;
   }
   return RET_SUCC;
 }
 
-GPUCoreLimiter::~GPUCoreLimiter()
+GpuCoreLimiter::~GpuCoreLimiter()
 {
   JoinWatcher();
 }
 
-void GPUCoreLimiter::JoinWatcher() {
-  whatcherEnd_ = true;
+void GpuCoreLimiter::JoinWatcher() {
+  watcherEnd_ = true;
   if (watcher_.joinable()) {
     try {
       watcher_.join();
     } catch (const std::system_error &e) {
-      log_error("Join watcher failed");
+      ;
     }
   }
 }

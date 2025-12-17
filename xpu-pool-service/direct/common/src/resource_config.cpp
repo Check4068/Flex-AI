@@ -25,7 +25,7 @@ int ResourceConfig::ParseLineByConfigName(const string& line, const string& conf
 {
     string valueStr;
     string::size_type pos = line.npos;
-    pos = line.find(configName, 0);
+    pos = line.rfind(configName, 0);
     if (pos == line.npos) {
         log_err("not found {%s}", configName);
         return RET_FAIL;
@@ -47,7 +47,7 @@ int ResourceConfig::ParseLineByConfigName(const string& line, const string& conf
 */
 int ResourceConfig::LoadVxpuConfig()
 {
-    const string configPath = xpu_.ConfigPath();
+    const string configPath(xpu_.ConfigPath());
     ifstream file(configPath);
     if (!file.is_open()) {
         FileOperateErrorHandler(file, configPath);

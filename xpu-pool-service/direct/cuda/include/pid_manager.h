@@ -9,7 +9,7 @@
 
 class PidManager {
 public:
-  PidManager(const std::string &BaseDir) : PIDS_CONFIG_DIR(baseDir), PIDS_CONFIG_PATH(baseDir + PIDS_CONFIG_NAME) {}
+  PidManager(const std::string &baseDir) : PIDS_CONFIG_DIR(baseDir), PIDS_CONFIG_PATH(baseDir + PIDS_CONFIG_NAME) {}
   int Initialize();
   int Refresh();
   int GetContainerPid(int hostPid);

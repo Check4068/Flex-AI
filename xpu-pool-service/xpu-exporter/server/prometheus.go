@@ -21,7 +21,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"huawei.com/vxpu-device-plugin/pkg/log"
 
 	"huawei.com/xpu-exporter/collector"
 	"huawei.com/xpu-exporter/common/limiter"
@@ -34,14 +33,14 @@ const (
 	HTTP ProtocolType = iota
 	// HTTPS represents the protocol type for encrypted HTTPS communication
 	HTTPS
-	portMin         = 1025
-	portMax         = 40000
-	timeout         = 10
-	maxHeaderBytes  = 3072
-	maxIPConnLimit  = 128
-	maxConcurrency  = 512
+	portMin                = 1025
+	portMax                = 40000
+	timeout                = 10
+	maxHeaderBytes         = 3072
+	maxIPConnLimit         = 128
+	maxConcurrency         = 512
 	defaultShutdownTimeout = 30 * time.Second
-	certFilePath    = "/opt/xpu/certs/"
+	certFilePath           = "/opt/xpu/certs/"
 )
 
 // ExporterServer provides the HTTP/HTTPS service for Prometheus to obtain monitoring data.
@@ -77,7 +76,7 @@ func (s *ExporterServer) indexHandler(w http.ResponseWriter, _ *http.Request) {
 	if s.ProtocolType == HTTPS {
 		protocol = "https"
 	}
-	_, err := w.Write([]byte(
+	_, _ = w.Write([]byte(
 		`<html>
 		<head><title>XPU-Exporter</title></head>
 		<body>
@@ -85,9 +84,6 @@ func (s *ExporterServer) indexHandler(w http.ResponseWriter, _ *http.Request) {
 		<p align="center">Welcome to use XPU-Exporter, the Prometheus metrics url is ` + protocol + `://IP:` + strconv.Itoa(s.Port) + `/metrics: <a href="./metrics">Metrics</a></p>
 		</body>
 		</html>`))
-	if err != nil {
-		log.Errorf("Write to response error: %v", err)
-	}
 }
 
 // VerifyServerParams verify server params valid
@@ -100,7 +96,6 @@ func (s *ExporterServer) VerifyServerParams() error {
 		return errors.New("the listen Ip is invalid")
 	}
 	s.Ip = parsedIP.String()
-	log.Infof("listen on: %s", s.Ip)
 
 	reg := regexp.MustCompile(limiter.IPReqLimitReg)
 	if !reg.Match([]byte(s.LimitIPReq)) {
@@ -135,16 +130,15 @@ func (s *ExporterServer) VerifyServerParams() error {
 		s.cert = &cert
 	} else {
 		s.ProtocolType = HTTP
-		log.Infoln("The HTTPS service is not enabled, using HTTP")
 	}
 	return nil
 }
 
 func getTLSConfig() *tls.Config {
 	return &tls.Config{
-		MinVersion:          tls.VersionTLS13,
+		MinVersion:               tls.VersionTLS13,
 		PreferServerCipherSuites: true,
-		InsecureSkipVerify: false,
+		InsecureSkipVerify:       false,
 	}
 }
 
@@ -166,12 +160,12 @@ func getCertsFile(suffix string) (string, error) {
 
 func (s *ExporterServer) initConfig() *limiter.HandlerConfig {
 	conf := &limiter.HandlerConfig{
-		PrintLog:      true,
-		Method:        http.MethodGet,
-		LimitBytes:    limiter.DefaultDataLimit,
+		PrintLog:         true,
+		Method:           http.MethodGet,
+		LimitBytes:       limiter.DefaultDataLimit,
 		TotalConcurrency: s.Concurrency,
-		IPConcurrency:   s.LimitIPReq,
-		CacheSize:       limiter.DefaultCacheSize,
+		IPConcurrency:    s.LimitIPReq,
+		CacheSize:        limiter.DefaultCacheSize,
 	}
 	return conf
 }
@@ -183,11 +177,11 @@ func (s *ExporterServer) newServer(conf *limiter.HandlerConfig) (*http.Server, n
 	}
 
 	server := &http.Server{
-		Addr:              s.Ip + ":" + strconv.Itoa(s.Port),
-		Handler:           handler,
-		ReadTimeout:       timeout * time.Second,
-		WriteTimeout:      timeout * time.Second,
-		MaxHeaderBytes:    maxHeaderBytes,
+		Addr:           s.Ip + ":" + strconv.Itoa(s.Port),
+		Handler:        handler,
+		ReadTimeout:    timeout * time.Second,
+		WriteTimeout:   timeout * time.Second,
+		MaxHeaderBytes: maxHeaderBytes,
 	}
 
 	// Configure TLS if needed
@@ -222,7 +216,6 @@ func (s *ExporterServer) StartServe(ctx context.Context, cancel context.CancelFu
 	conf := s.initConfig()
 	server, listener, err := s.newServer(conf)
 	if err != nil {
-		log.Errorf("Failed to create server: %v", err)
 		cancel()
 		return
 	}
@@ -230,26 +223,21 @@ func (s *ExporterServer) StartServe(ctx context.Context, cancel context.CancelFu
 	go func() {
 		var err error
 		if s.ProtocolType == HTTPS {
-			log.Infof("Starting HTTPS server on %s", server.Addr)
 			err = server.ServeTLS(listener, "", "")
 		} else {
-			log.Infof("Starting HTTP server on %s", server.Addr)
 			err = server.Serve(listener)
 		}
 
 		if err != nil && err != http.ErrServerClosed {
-			log.Errorf("Server error: %v and stopped", err)
 			cancel()
 		}
 	}()
 
 	<-ctx.Done()
-	log.Info("Received stop signal, shutting down server")
 
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), defaultShutdownTimeout)
 	defer cancelShutdown()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Errorf("Server shutdown error: %v", err)
 	}
 }
 
@@ -262,7 +250,6 @@ func (s *ExporterServer) RegisterCollectorService(c collector.ICollectorService)
 		return fmt.Errorf("collector service is nil")
 	}
 	s.collectService = c
-	log.Infof("Collect service[%s] registered.", c.GetName())
 	return nil
 }
 

@@ -2,7 +2,7 @@
  *Copyright(c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
 
-// Package main 
+// Package main
 // XPU Exporter 是一个 Prometheus 指标导出器，用于收集和暴露 GPU/NPU 设备的监控指标
 package main
 
@@ -27,16 +27,16 @@ import (
 
 var (
 	updateTime int
-	xpuType string
+	xpuType    string
 )
 
 const (
-	exporterServerPort = 8082                   // 默认 HTTP 服务端口
-	updateTimeConst    = 5                      // 默认更新间隔（秒）
-	oneMinute          = 60                     // 一分钟的秒数
-	cacheTime          = 65 * time.Second       // 缓存过期时间
-	defaultConcurrency = 5                      // 默认最大并发数
-	defaultConnection  = 20                     // 默认连接数限制
+	exporterServerPort = 8082                        // 默认 HTTP 服务端口
+	updateTimeConst    = 5                           // 默认更新间隔（秒）
+	oneMinute          = 60                          // 一分钟的秒数
+	cacheTime          = 65 * time.Second            // 缓存过期时间
+	defaultConcurrency = 5                           // 默认最大并发数
+	defaultConnection  = 20                          // 默认连接数限制
 	defaultLogDir      = "/var/log/xpu/xpu-exporter" // 默认日志目录
 )
 
@@ -44,7 +44,7 @@ var serverHandler *server.ExporterServer
 
 // init 函数在程序启动时初始化命令行参数
 func init() {
-	serverHandler = &ExporterServer{}
+	serverHandler = &server.ExporterServer{}
 	// 定义命令行参数
 	flag.StringVar(&xpuType, "type", "", "Set xpu type,range[gpu,npu],can not be empty")
 	flag.IntVar(&updateTime, "updateTime", updateTimeConst,
@@ -57,7 +57,7 @@ func init() {
 		"The max concurrency of the http serverHandler, range is [1-512]")
 	flag.IntVar(&serverHandler.LimitIPConn, "limitIPConn", defaultConcurrency,
 		"the tcp connection limit for each Ip, range is [1,128]")
-	flag.IntVar(&serverHandler.LimitTotalConn, "limitTotalConn", defaultConcurrency,
+	flag.IntVar(&serverHandler.LimitTotalConn, "limitTotalConn", defaultConnection,
 		"the tcp connection limit for all request, range is [1,512]")
 	flag.StringVar(&serverHandler.LimitIPReq, "LimitIPReq", "20/1",
 		"the http request limit counts for each Ip,20/1 means allow 20 request in 1 seconds")
@@ -93,7 +93,7 @@ func main() {
 	flag.Parse()
 
 	syscall.Umask(0)
-	logFileName := path.Join(defaultLogDir,"xpu-exporter.log")
+	logFileName := path.Join(defaultLogDir, "xpu-exporter.log")
 	log.InitLogging(logFileName)
 
 	log.Infof("npu exporter starting and the version is %s", versions.BuildVersion)

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"huawei.com/xpu-device-plugin/pkg/log"
 	"huawei.com/xpu-exporter/common/service"
 )
 
@@ -32,16 +31,14 @@ func GetAllVxpuInfo() (string, error) {
 		}),
 	)
 	if err != nil {
-		log.Errorf("grpc dial error: %v", err)
 		return "", err
 	}
 	defer conn.Close()
 
 	client := service.NewPidsServiceClient(conn)
-	getAllVxpuInfoResponse, err := client.GetAllVxpuInfo(context.Background(), &service.GetAllVxpuInfoRequest{Period: "60"})
+	getAllVgpuInfoResponse, err := client.GetAllVxpuInfo(context.Background(), &service.GetAllVxpuInfoRequest{Period: "60"})
 	if err != nil {
-		log.Errorf("client GetAllVxpuInfo error: %v", err)
 		return "", err
 	}
-	return getAllVxpuInfoResponse.VxpuInfos, nil
+	return getAllVgpuInfoResponse.VxpuInfos, nil
 }

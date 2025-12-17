@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"huawei.com/vxpu-device-plugin/pkg/log"
 	"huawei.com/xpu-exporter/common/cache"
 )
 
@@ -28,9 +27,9 @@ func LimitListener(l net.Listener, totalConnLimit, IPConnLimit, cacheSize int) (
 
 	bucket := make(chan struct{}, totalConnLimit)
 	ll := &localLimitListener{
-		Listener:     l,
-		buckets:      bucket,
-		ipConnLimit:  int64(IPConnLimit),
+		Listener:    l,
+		buckets:     bucket,
+		ipConnLimit: int64(IPConnLimit),
 	}
 	if cacheSize > 0 {
 		ll.ipCache = cache.New(cacheSize)
@@ -40,10 +39,10 @@ func LimitListener(l net.Listener, totalConnLimit, IPConnLimit, cacheSize int) (
 
 type localLimitListener struct {
 	net.Listener
-	buckets      chan struct{}
-	closeOnce    sync.Once
-	ipCache      *cache.ConcurrencyLRUCache
-	ipConnLimit  int64
+	buckets     chan struct{}
+	closeOnce   sync.Once
+	ipCache     *cache.ConcurrencyLRUCache
+	ipConnLimit int64
 }
 
 // acquire acquires the limiting semaphore. Returns true if successfully acquired, false if the listener is closed or reach the max limit
@@ -69,7 +68,6 @@ func (l *localLimitListener) Accept() (net.Conn, error) {
 	ip, cacheKey := getIpAndKey(c)
 	if ip != "" && l.ipCache != nil {
 		if counts, err := l.ipCache.IncreaseOne(cacheKey, -1); err == nil && counts > l.ipConnLimit {
-			log.WarnIn("ip connections reach max limit, connection will to force closed")
 			return closeImmediately(c, l.ipCache), nil
 		}
 	}
@@ -78,7 +76,6 @@ func (l *localLimitListener) Accept() (net.Conn, error) {
 	if l.acquire() {
 		return &limitListenerConn{Conn: c, release: l.release, ipCache: l.ipCache}, nil
 	}
-	log.WarnIn("limit forbidden, connection will to force closed")
 	return closeImmediately(c, l.ipCache), nil
 }
 
@@ -93,17 +90,6 @@ func getIpAndKey(c net.Conn) (string, string) {
 
 func closeImmediately(c net.Conn, lruCache *cache.ConcurrencyLRUCache) net.Conn {
 	// once the connection reach the max limit, force close the connection
-	tcpConn, ok := c.(*net.TCPConn)
-	if ok {
-		if err := tcpConn.SetLinger(0); err != nil {
-			log.WarnIn("Error when setting linger: %s", err)
-		}
-	}
-
-	err := c.Close()
-	if err != nil {
-		log.WarnIn(err)
-	}
 	return &limitListenerConn{Conn: c, release: func() {}, ipCache: lruCache}
 }
 
@@ -125,13 +111,9 @@ type limitListenerConn struct {
 func (l *limitListenerConn) Close() error {
 	err := l.Conn.Close()
 	l.releaseOnce.Do(l.release)
-	cacheKey := getIpAndKey(l.Conn)
+	ip, cacheKey := getIpAndKey(l.Conn)
 	if ip != "" && l.ipCache != nil {
-		d, err := l.ipCache.DecreaseOne(cacheKey, time.Hour)
-		if err != nil {
-			log.ErrorIn(err)
-		}
-		log.Info("decrement ip connections %d", d)
+		_, _ = l.ipCache.DecreaseOne(cacheKey, time.Hour)
 	}
 	return err
 }
