@@ -1,5 +1,5 @@
 /*
- *Copyright(c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
 
 // Package main implements xpu device plugin
@@ -15,7 +15,7 @@ import (
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
-	"k8s.io/kubernetes/pkg/apis/deviceplugin/v1beta1"
+	"k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
 	"huawei.com/vxpu-device-plugin/pkg/api/runtime/service"
 	"huawei.com/vxpu-device-plugin/pkg/log"
@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	xpuSocketPath                 = "xpu.sock"                                  // XPU 设备插件的 Unix Socket 文件名
-	defaultDevicePluginSplitCount = 2                                           // 默认设备拆分数量
-	defaultLogDir                 = "/var/log/xpu/xpu-device-plugin"            // 默认日志目录
+	xpuSockPath                 = "xpu.sock"                                  // XPU 设备插件的 Unix Socket 文件名
+	defaultDeviceSplitNum 		= 2                                           // 默认设备拆分数量
+	defaultLogDir               = "/var/log/xpu/xpu-device-plugin"            // 默认日志目录
 )
 
 var (
@@ -54,7 +54,7 @@ func events(watcher *fsnotify.Watcher, sigs chan os.Signal, pluginInst *plugin.D
 			switch s {
 			case syscall.SIGHUP:
 				// SIGHUP 信号：优雅重启，重新加载配置
-				log.Infof("Received SIGHUP, restarting.")
+				log.InfoIn("Received SIGHUP, restarting.")
 				return true // 返回 true 触发插件重启
 			default:
 				// 其他信号（SIGINT、SIGTERM、SIGQUIT）：优雅关闭
@@ -71,7 +71,7 @@ func start() error {
 	syscall.Umask(0)
 	
 	// 初始化日志系统，日志文件保存在配置的日志目录
-	logFileName := filepath.Join(config.LogDir, "xpu-device-plugin.log")
+	logFileName := path.Join(config.LogDir, "xpu-device-plugin.log")
 	log.InitLogging(logFileName)
 
 	// 初始化 XPU 设备发现模块，扫描系统中的 GPU/NPU 设备
@@ -138,12 +138,12 @@ func start() error {
 func main() {
 	// 定义命令行参数
 	// 设备拆分数量：每个物理设备可以拆分成多个逻辑设备
-	flag.IntVar(&config.DeviceSplitCount, "device-split-count", defaultDevicePluginSplitCount, "the number of devices to split")
+	flag.UintVar(&config.DeviceSplitCount, "device-split-count", defaultDeviceSplitCount, "the number of devices to split")
 	// 节点名称：从环境变量 NODE_NAME 获取，如果没有则使用默认值
 	flag.StringVar(&config.NodeName, "node-name", os.Getenv("NODE_NAME"), "node name")
 	// 日志目录：日志文件的存储目录
 	flag.StringVar(&config.LogDir, "log-dir", defaultLogDir, "log storage directory")
-	// 资源名称：Kubernetes 中的资源名称，用于向 kubelet 注册（如 "nvidia.com/gpu"）
+	// 资源名称：Kubernetes 中的资源名称，用于向 kubelet 注册（如 "huawei.com/gpu"）
 	flag.StringVar(&resourceName, "resource-name", xpu.VxpuNumber, "resource name")
 	// GPU 类型配置文件：GPU 类型配置文件的绝对路径
 	flag.StringVar(&config.GPUTypeConfig, "gpu-type-config", "", "the abs path map of gpu type config file")
@@ -153,7 +153,7 @@ func main() {
 
 	// 启动设备插件服务
 	if err := start(); err != nil {
-		// 启动失败，记录致命错误并退出程序（退出码为 1）
-		log.Fatalf("Failed to start device plugin: %v", err)
+		// 启动失败，记录致命错误并退出程序
+		log.FatalIn(err)
 	}
 }

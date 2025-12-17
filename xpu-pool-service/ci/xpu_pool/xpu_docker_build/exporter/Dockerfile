@@ -21,7 +21,7 @@ RUN chmod 500 /opt/xpu/bin/xpu-exporter
 # 在本容器内新增用户时应当注意避免id碰撞
 RUN echo "xpu:x:10001:10001:eXPUPoolService:/:/sbin/nologin" >> /etc/passwd \
     && echo "xpu:x:10001:" >> /etc/group \
-    && echo "xpu:!::::::::" >> /etc/shadow \
+    && echo "xpu:!:::::::" >> /etc/shadow \
     && chown xpu:xpu /opt/xpu/bin/xpu-exporter \
     && setcap CAP_DAC_OVERRIDE=ep /opt/xpu/bin/xpu-exporter
 

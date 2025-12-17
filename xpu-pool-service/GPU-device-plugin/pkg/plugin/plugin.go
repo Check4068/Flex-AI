@@ -1,5 +1,5 @@
 /*
- *Copyright(c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
 
 // Package plugin implements vxpu device plugin
@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	grpcServeTryCount = 3
+	grpcServeTryCount = 5
 	secondsPerHour    = 3600
 	dialTimeout       = 5
 	pluginNotify      = "plugin"
@@ -136,21 +136,21 @@ func (m *DevicePlugin) serve() error {
 		for {
 			log.Infof("Starting GRPC server for '%s'", m.resourceName)
 			err := m.server.Serve(sock)
-			if err != nil {
+			if err == nil {
 				break
 			}
 
 			log.Errorf("GRPC server for '%s' crashed with error: %v", m.resourceName, err)
 
-			// restart if it has not been to often
+			// restart if it has not been too often
 			// i.e. if server has crashed more than 5 times and it didn't last more than one hour each time
 			if restartCount > grpcServeTryCount {
 				// quit
 				log.Fatalf("GRPC server for '%s' has repeatedly crashed recently. Quitting", m.resourceName)
 			}
-			timeSinceLaskCrash := time.Since(lastCrashTime).Seconds()
+			timeSinceLastCrash := time.Since(lastCrashTime).Seconds()
 			lastCrashTime = time.Now()
-			if timeSinceLaskCrash > secondsPerHour {
+			if timeSinceLastCrash > secondsPerHour {
 				// it has been one hour since the last crash... reset the count
 				// to reflect on the frequency
 				restartCount = 1
@@ -229,7 +229,7 @@ const (
 	configBaseDir    = "/etc/xpu"
 	containerDirPerm = 0755
 	configFilePerm   = 0644
-	pidsSockDIr      = "/var/lib/xpu"
+	pidsSockDir      = "/var/lib/xpu"
 	xpuPath          = "/opt/xpu"
 )
 
@@ -249,7 +249,7 @@ func writeVxpuConfig(dir string, usedMem, usedCores int32) error {
 	defer vxpuConfig.Close()
 
 	w := bufio.NewWriter(vxpuConfig)
-	_, err = w.WriteString(fmt.Sprintf("UsedMem:", usedMem, "\nUsedCores:", usedCores, "\n"))
+	_, err = w.WriteString(fmt.Sprint("UsedMem:", usedMem, "\nUsedCores:", usedCores, "\n"))
 	if err != nil {
 		log.Errorf("bufio Writer WriteString error: %v", err)
 		return err
@@ -301,8 +301,8 @@ func createContainerAllocateResponse(podId, containerName string,
 	response.Envs = make(map[string]string)
 	response.Envs[xpu.VisibleDevices] = xpu.GetVisibleDevices(devReq)
 	pidsSockMount := v1beta1.Mount{
-		ContainerPath: filepath.Clean(pidsSockDIr),
-		HostPath:      filepath.Clean(pidsSockDIr),
+		ContainerPath: filepath.Clean(pidsSockDir),
+		HostPath:      filepath.Clean(pidsSockDir),
 		ReadOnly:      true,
 	}
 	configFileMount := v1beta1.Mount{
@@ -367,8 +367,9 @@ func (m *DevicePlugin) Allocate(ctx context.Context, reqs *v1beta1.AllocateReque
 
 		err = createDirAndWriteFile(string(current.UID), curContainer.Name, devReq)
 		if err != nil {
-			log.Errorf("create dir and WriteFile error: %v, podId: %s, containerName: %s",
+			log.Errorf("create dir and write file error: %v, podId: %s, containerName: %s",
 				err, string(current.UID), curContainer.Name)
+			return &v1beta1.AllocateResponse{}, err
 		}
 		response := createContainerAllocateResponse(string(current.UID), curContainer.Name, devReq)
 		responses.ContainerResponses = append(responses.ContainerResponses, response)
@@ -378,10 +379,10 @@ func (m *DevicePlugin) Allocate(ctx context.Context, reqs *v1beta1.AllocateReque
 	return &responses, nil
 }
 
-// PreStarContainer is unimplemented for this plugin
-func (m *DevicePlugin) PreStarContainer(context.Context, *v1beta1.PreStarContainerRequest) (
-	*v1beta1.PreStarContainerResponse, error) {
-	return &v1beta1.PreStarContainerResponse{}, nil
+// PreStartContainer is unimplemented for this plugin
+func (m *DevicePlugin) PreStartContainer(context.Context, *v1beta1.PreStartContainerRequest) (
+	*v1beta1.PreStartContainerResponse, error) {
+	return &v1beta1.PreStartContainerResponse{}, nil
 }
 
 // dial establishes the gRPC communication with the registered device plugin.

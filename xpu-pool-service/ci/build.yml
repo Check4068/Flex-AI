@@ -19,15 +19,15 @@ params:
 
 envs:
   - condition: env_type == 'label'
-    label: ${euler_x86_label}
+    label: ${eulerx86_label}
   - condition: env_type == 'docker'
-    resources:
+    resource:
       type: docker
       image: ${image_name_x86}
       resource_class: 16U32G
       mode: toolbox
-  - condition: env_type == 'vpc'
-    resources:
+  - condition: env_type == "vpc"
+    resource:
       type: docker
       image: ${image_name_x86}
       pool: ${img_pool_x86}
@@ -43,6 +43,6 @@ buildflow:
   jobs:
     - job: job_xpu_pool_build_x86
       params:
-        - key: key1
+        - name: key1
           value: value1
       build_ref: ci/xpu_pool/build_x86.yml

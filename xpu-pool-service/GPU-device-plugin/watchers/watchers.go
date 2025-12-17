@@ -2,7 +2,7 @@
 Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
 */
 
-// Package watchers create FSWatcher and OsWatcher
+// Package watchers create FSWatcher and OSWatcher
 package watchers
 
 import (
@@ -20,7 +20,8 @@ func NewFSWatcher(files ...string) (*fsnotify.Watcher, error) {
 	}
 
 	for _, f := range files {
-		if err = watcher.Add(f); err != nil {
+		err = watcher.Add(f)
+		if err != nil {
 			watcher.Close()
 			return nil, err
 		}

@@ -4,20 +4,25 @@ set -e
 
 build_target=$1
 image_name=$2
-current_dir=$(cd "$(dirname "$0")" && pwd)
-top_dir=$(dirname "$current_dir")
+current_dir=$(
+    cd "$(dirname "$0")" || exit 1
+    pwd
+)
+top_dir=$(dirname "$(dirname "${current_dir}")")
 pkg_dir=${top_dir}/pkg
 host_scripts_dir=${current_dir}/host_scripts
 
+echo "current_dir=${current_dir}"
 echo "top_dir=${top_dir}"
 echo "pkg_dir=${pkg_dir}"
 echo "build_target=${build_target}"
 echo "image_name=${image_name}"
 
 function arch_config() {
-    if [[ $arch == "x86_64" ]]; then
+    arch=$(uname -m)
+    if [[ ${arch} == "x86_64" ]]; then
         platform="x86"
-    elif [[ $arch == "aarch64" ]]; then
+    elif [[ ${arch} == "aarch64" ]]; then
         platform="arm"
     else
         echo "incorrect arch mode"
@@ -26,32 +31,35 @@ function arch_config() {
 }
 
 function mk_xpu_pkg_dir() {
-    mkdir -p "$pkg_dir"
-    mkdir -p "$pkg_dir/templates"
-    chmod 700 "$pkg_dir/templates"
+    [ -e "${pkg_dir}" ] && rm -rf "${pkg_dir}"
+    mkdir -p "${pkg_dir}"/images
+    mkdir -p "${pkg_dir}"/templates
+    chmod -R 750 "${pkg_dir}
 }
 
 function build_xpu_component() {
     echo "build xpu component begin"
-    cd ${top_dir}/plugin-market && sh build_daemonset.sh
+    cd ${top_dir}/ci && sh build.sh
     echo "build xpu component end"
 }
 
 function get_helm_package() {
-    cp -r --remove-destination -f gpupool-0.1.0.tgz "$pkg_dir/templates"
-    cp -r --remove-destination -f npupool-0.1.0.tgz "$pkg_dir/templates"
-    cp -r --remove-destination -f ./install.sh "$pkg_dir"
+    cd ${top_dir}/install/helm && helm package gpupool 
+    cp -P --remove-destination -rf gpupool-0.1.0.tgz "${pkg_dir}/templates"
+    cp -P --remove-destination -rf ../install.sh "${pkg_dir}/templates"
+    cp -P --remove-destination -rf ../uninstall.sh "${pkg_dir}"
 }
 
-function mkmod_func() {
+function mknod_func() {
+    loopfile_firstname="/dev/loop0"
     loopfile_num=0
-    loopfile_name=/dev/loop${loopfile_num}
+    loopfile_name=/dev/loop"${loopfile_num}"
     while true; do
-        if [ ! -b "${loopfile_name}" ]; then
-            loopfile_num=$((loopfile_num + 1))
+        if [ -b "${loopfile_name}" ]; then
+            loopfile_num=$(expr ${loopfile_num} + 1)
             loopfile_name=/dev/loop${loopfile_num}
         else
-            sudo mknod "${loopfile_name}" b 7 "${loopfile_num}"
+            sudo mknod ${loopfile_name} b 7 "${loopfile_num}"
             sudo chmod 660 "${loopfile_name}"
             sudo chown root:disk "${loopfile_name}"
             echo "${loopfile_name}"
@@ -64,11 +72,11 @@ function make_docker_base_image() {
     # CurrentDir: code_branch/XPUPoolService/ci/xpu_pool/
     mkdir -p "${current_dir}/xpu_docker_build/exporter/euler"
     mkdir -p "${top_dir}/plugin-market/euler"
-    mkmod_func
-    sudo mount "${top_dir}/../EulerOS_Server/${platform}"/EulerOS-*_dvd.iso "${current_dir}/xpu_docker_build/exporter/euler"
-    sudo mount "${top_dir}/../EulerOS_Server/${platform}"/EulerOS-*_dvd.iso "${top_dir}/plugin-market/euler"
+    mknod_func
+    sudo mount "${top_dir}"/../EulerOS_Server/"${platform}"/EulerOS-*-dvd.iso "${current_dir}/xpu_docker_build/exporter/euler"
+    sudo mount "${top_dir}"/../EulerOS_Server/"${platform}"/EulerOS-*-dvd.iso "${top_dir}/plugin-market/euler"
     cd "${current_dir}"
-    docker import "${top_dir}/../EulerOS_Server/${platform}"/EulerOS_Server_*.tar.xz euleros:econtainer
+    docker import "${top_dir}"/../EulerOS_Server/"${platform}"/EulerOS_Server_*.tar.xz euleros:econtainer
 }
 
 function build_image() {
@@ -93,10 +101,10 @@ function export_images() {
 function build_output_packages() {
     cd "${pkg_dir}"
     mkdir -p ${WORKSPACE}/output/software
-    upload_arch=$(echo $search | sed 's/\/\///g')
-    zip -r -y ${WORKSPACE}/output/software/${xpupool_plugin}_${upload_arch}.zip *
+    upload_arch=$(echo ${arch} | sed 's/_/-/g')
+    zip -1 -y ${WORKSPACE}/output/software/${xpupool_plugin}_${upload_arch}.zip *
     mkdir -p ${WORKSPACE}/output/inner
-    cp -P --remove-destination -f ${top_dir}/XPU_symbols.tar.gz \
+    cp -P --remove-destination -rf ${top_dir}/XPU_symbols.tar.gz \
         ${WORKSPACE}/output/inner/${xpupool_plugin}_${upload_arch}_sym.tar.gz
     cd -
 }
@@ -108,8 +116,7 @@ function main() {
     build_xpu_component
     get_helm_package
     make_docker_base_image
-    cd ${top_dir}/plugin-market
-    sh build_daemonset.sh
+    cd ${top_dir}/plugin-market &&sh build_daemonset.sh
     build_image "cuda_client" "cuda_client_update" gpu
     build_image "acl_client" "acl_client_update" npu
     build_image "gpu-device-plugin" "gpu_device_plugin" gpu
@@ -117,6 +124,7 @@ function main() {
     build_image "exporter" "xpu_exporter" gpu npu
     export_images
     sh ${current_dir}/../cms_signature.sh ${pkg_dir}
+    build_output_packages
     sh ${current_dir}/../hwp7s_signature.sh ${WORKSPACE}/output/software
 }
 

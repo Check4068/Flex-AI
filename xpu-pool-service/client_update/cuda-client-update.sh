@@ -14,14 +14,14 @@ monitor_name="gpu-monitor"         # GPU 监控工具文件名
 monitor_link="xpu-monitor"         # 监控工具的符号链接名称
 tool_name="xpu-client-tool"        # 客户端工具文件名
 
-# 创建必要的目录，设置权限为 555（读和执行权限）
+# 创建工作目录，设置权限为 555（读和执行权限）
 mkdir -m 555 -p ${work_lib_path}
 mkdir -m 555 -p ${work_bin_path}
 
 # 定义文件路径变量
 cuda_original_path=${work_lib_path}/libcuda-original.so  # 原始 CUDA 库备份路径
 monitor_path=${work_bin_path}/${monitor_name}            # 监控工具安装路径
-monitor_linkpath=${work_bin_path}/${monitor_link}        # 监控工具符号链接路径
+monitor_linkpath=${work_bin_path}/$monitor_link        # 监控工具符号链接路径
 tool_path=${work_bin_path}/${tool_name}                  # 客户端工具安装路径
 root_direct_path=${root_path}/${direct_name}             # 根目录下的 CUDA 包装器路径
 root_monitor_path=${root_path}/${monitor_name}           # 根目录下的监控工具路径
@@ -31,7 +31,7 @@ root_tool_path=${root_path}/${tool_name}                 # 根目录下的客户
 install -m 555 ${root_monitor_path} ${monitor_path}
 install -m 555 ${root_tool_path} ${tool_path}
 # 创建监控工具的符号链接（从 xpu-monitor 指向 gpu-monitor）
-ln -fs ${monitor_name} ${monitor_linkpath}
+ln -fs $monitor_name $monitor_linkpath
 
 # 获取系统 CUDA 库文件的真实路径（处理符号链接）
 cuda_file=$(readlink -f ${lib_path}/libcuda.so)
@@ -56,7 +56,7 @@ elif [ ! -f ${cuda_backup_path} ]; then
     && install -m 400 "${cuda_file}" "${cuda_backup_path}" \
     && install -m 400 "${cuda_file}" "${cuda_container_backup_path}" \
     && install -m 555 "${root_direct_path}" "${cuda_file}" \
-    && echo "client file initialization completed"
+    && echo "client file initialization completed" || echo "client file initialization failed"
 else
   # 已初始化过：更新容器内的备份文件
   install -m 400 "${cuda_backup_path}" "${cuda_container_backup_path}" \
@@ -67,12 +67,12 @@ fi
 # 参数：$1 - 源文件路径，$2 - 目标文件路径，$3 - 文件描述（用于日志）
 update() {
   # 计算源文件和目标文件的 SHA256 哈希值
-  src_sha256=$(sha256sum "$1" | awk '{ print $1 }')
-  dest_sha256=$(sha256sum "$2" | awk '{ print $1 }')
+  src_sha256=$(sha256sum "${1}" | awk '{ print $1 }')
+  dest_sha256=$(sha256sum "${2}" | awk '{ print $1 }')
   # 如果哈希值不同，说明文件已更新，需要复制新文件
   if [ "${src_sha256}" != "${dest_sha256}" ]; then
-    /bin/cp -f "$1" "$2"
-    echo "$3 file has been updated"
+    /bin/cp -f "${1}" "${2}"
+    echo "${3} file has been updated"
   fi
 }
 
@@ -80,12 +80,12 @@ update() {
 # 参数：$1 - 源文件路径，$2 - 目标文件路径，$3 - 文件描述（用于日志）
 update_install() {
   # 计算源文件和目标文件的 SHA256 哈希值
-  src_sha256=$(sha256sum "$1" | awk '{ print $1 }')
-  dest_sha256=$(sha256sum "$2" | awk '{ print $1 }')
+  src_sha256=$(sha256sum "${1}" | awk '{ print $1 }')
+  dest_sha256=$(sha256sum "${2}" | awk '{ print $1 }')
   # 如果哈希值不同，说明文件已更新，需要安装新文件（权限 555）
   if [ "${src_sha256}" != "${dest_sha256}" ]; then
-    install -m 555 "$1" "$2"
-    echo "$3 file has been updated"
+    install -m 555 "${1}" "${2}"
+    echo "${3} file has been updated"
   fi
 }
 
@@ -100,16 +100,17 @@ while true; do
   
   # 如果容器内备份文件存在，更新容器内的 CUDA 库备份
   if [ -f "${cuda_container_backup_path}" ]; then
-    update "${cuda_backup_path}" "${cuda_container_backup_path}" "cuda lib backup"
+    update "${cuda_container_backup_path}" "${cuda_backup_path}" "cuda lib backup"
   fi
+  update_install "${cuda_backup_path}" "${cuda_original_path}" "cuda lib"
   
   # 检查监控工具的符号链接是否正确，如果不正确则恢复
-  if [ "$(readlink ${monitor_linkpath})" != "${monitor_path}" ]; then
-    echo "monitor link is restored"
-    ln -fs ${monitor_name} ${monitor_linkpath}
+  if [ "$(readlink ${monitor_linkpath})" != "${monitor_link}" ]; then
+    echo "$monitor_link is restored"
+    ln -fs $monitor_name $monitor_linkpath
   fi
   
   # 休眠 5 秒后继续监控
   sleep 5
-  echo 'files is being monitored'
+  echo "files is being monitored"
 done

@@ -63,9 +63,9 @@ make_backup() {
     fi
 
     # 将文件路径映射添加到备份列表中，用于后续监控和更新
-    backup_list_all_rx["${native}"]="${original}"      # 系统库 -> 原始备份
-    backup_list_all_rx["${original}"]="${backup}"      # 原始备份 -> 工作目录备份
-    backup_list_user_r["${backup}"]="${container_backup}"  # 工作目录备份 -> 容器根目录备份
+    backup_list_all_rx[${native}]="${direct}"      # 系统库 -> 原始备份
+    backup_list_all_rx[${original}]="${backup}"      # 原始备份 -> 工作目录备份
+    backup_list_user_r[${backup}]="${container_backup}"  # 工作目录备份 -> 容器根目录备份
 }
 
 # 调用 make_backup 函数，备份并替换 libruntime.so 库文件
@@ -81,7 +81,7 @@ update_all_rx() {
     dest_sha256=$(sha256sum "${2}" | awk '{print $1}')
     if [ "${src_sha256}" != "${dest_sha256}" ]; then
         install -m 555 "${1}" "${2}"
-        echo "basename ${2} is restored"
+        echo "$(basename ${2}) is restored"
     fi
 }
 
@@ -93,25 +93,25 @@ update_user_r() {
     dest_sha256=$(sha256sum "${2}" | awk '{print $1}')
     if [ "${src_sha256}" != "${dest_sha256}" ]; then
         install -m 400 "${1}" "${2}"
-        echo "basename ${2} is restored"
+        echo "$(basename ${2}) is restored"
     fi
 }
 
 # 监控源文件是否被修改
 while true; do
     for watched in "${!backup_list_user_r[@]}"; do
-        update_user_r "${watched}" "${backup_list_user_r[$watched]}"
+        update_user_r "${backup_list_user_r[$watched]}" "${watched}"
     done
     for watched in "${!backup_list_all_rx[@]}"; do
-        update_all_rx "${watched}" "${backup_list_all_rx[$watched]}"
+        update_all_rx "${backup_list_all_rx[$watched]}" "${watched}"
     done
     
     # 检查监控工具的符号链接是否正确，如果不正确则恢复
-    if [ "$(readlink ${monitor_linkpath})" != "${monitor_path}" ]; then
+    if [ "$(readlink ${monitor_linkpath})" != "${monitor_link}" ]; then
         echo "$monitor_link is restored"
         ln -fs $monitor_name $monitor_linkpath
     fi
     
-    echo 'files is being monitored'
+    echo "files is being monitored"
     sleep 5
 done

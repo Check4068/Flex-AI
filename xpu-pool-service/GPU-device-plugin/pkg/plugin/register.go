@@ -1,5 +1,5 @@
 /*
- *Copyright(c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
 
 // Package plugin implements vxpu device plugin
@@ -52,14 +52,14 @@ func (r *DeviceRegister) apiDevices() []*types.DeviceInfo {
 
 func (r *DeviceRegister) registerInAnnotation() error {
 	devices := r.apiDevices()
-	encodeDevices := util.EncodeNodeDevices(devices)
+	encodedDevices := util.EncodeNodeDevices(devices)
 	annotations := map[string]string{
-		xpu.NodeVXPURegister:  encodeDevices,
-		xpu.NodeVXPUHandshake: "Reported_" + time.Now().Format("2006-01-02 15:04:05"),
+		xpu.NodeVXPURegister:  encodedDevices,
+		xpu.NodeVXPUHandshake: "Reported_" + time.Now().Format("2006.01.02 15:04:05"),
 		xpu.NodeXpuTopology:   r.topologyProvider.Topology(),
 	}
 
-	log.Infoln("Reporting devices", encodeDevices, "in", time.Now().Format("2006-01-02 15:04:05"))
+	log.Infoln("Reporting devices", encodedDevices, "in", time.Now().Format("2006.01.02 15:04:05"))
 	err := util.PatchNodeAnnotations(config.NodeName, annotations)
 	if err != nil {
 		log.Errorln("k8s patch node error:", err.Error(), "node name:", config.NodeName)
@@ -124,14 +124,14 @@ func (r *DeviceRegister) watchAndRegister() {
 func loadGPUTypeConf() {
 	confData, err := os.ReadFile(config.GPUTypeConfig)
 	if err != nil {
-		log.Errorf("Failed to read gpu type config in '%s', err: '%v'", config.GPUTypeConfig, err)
+		log.Errorf("Failed to read gpu type config in '%s', err: %v", config.GPUTypeConfig, err)
 		return
 	}
 	conf := strings.TrimSpace(string(confData))
 	unmarshalGPUTypeConf(conf)
 }
 
-func unmarshalGPUTypeConf(conf string) {
+func unmarshalGPUTypeConf(confStr string) {
 	config.GPUTypeMap = make(map[string]string)
 	if err := yaml.Unmarshal([]byte(confStr), &config.GPUTypeMap); err != nil {
 		log.Errorf("Failed to unmarshal gpu type yaml, err: %v", err)

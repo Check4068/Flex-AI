@@ -20,5 +20,6 @@
       </copy>
     </copies>
   </artifact>
+  <dependencies>
   <dependencies/>
 </project>

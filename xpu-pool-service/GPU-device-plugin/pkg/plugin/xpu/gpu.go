@@ -1,5 +1,4 @@
 //go:build vgpu
-// +build vgpu
 
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
@@ -22,42 +21,42 @@ import (
 	"time"
 
 	"k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
-	"huawei.com/xpu-device-plugin/pkg/govmml"
-	"huawei.com/xpu-device-plugin/pkg/graph"
-	"huawei.com/xpu-device-plugin/pkg/log"
-	"huawei.com/xpu-device-plugin/pkg/plugin/config"
-	"huawei.com/xpu-device-plugin/pkg/plugin/types"
+
+	"huawei.com/vxpu-device-plugin/pkg/gonvml"
+	"huawei.com/vxpu-device-plugin/pkg/graph"
+	"huawei.com/vxpu-device-plugin/pkg/log"
+	"huawei.com/vxpu-device-plugin/pkg/plugin/config"
+	"huawei.com/vxpu-device-plugin/pkg/plugin/types"
 )
 
 const (
-	// VgpuNumber vgpu number resource name
-	VgpuNumber = "huawei.com/gpu-number"
-	// VgpuCore vgpu core resource name
-	VgpuCore = "huawei.com/gpu-cores"
-	// VgpuMemory vgpu memory resource name
-	VgpuMemory = "huawei.com/gpu-memory-1Gi"
-	microSeconds = 1000 * 1000
-	milliwatts = 1000
-	eventWaitTimeout = 5000
-	nvidiaXidErrorPageFault = 31
-	nvidiaXidStoppedProcessing = 43
-	nvidiaXidReset = 45
+	// VxpuNumber vxpu number resource name
+	VxpuNumber = "huawei.com/vxpu-number"
+	// VxpuCore vxpu core resource name
+	VxpuCore = "huawei.com/vxpu-cores"
+	// VxpuMemory vxpu memory resource name
+	VxpuMemory 						= "huawei.com/vxpu-memory-1Gi"
+	microSecond 					= 1000 * 1000
+	milliwatts 						= 1000
+	eventWaitTimeout 				= 5000
+	nvidiaXidErrorPageFault 		= 31
+	nvidiaXidErrorStoppedProcessing = 43
+	nvidiaXidErrorPreemptiveCleanup = 45
 	// VisibleDevices visible nvidia devices env
 	VisibleDevices = "NVIDIA_VISIBLE_DEVICES"
 	// VxpuConfigFileName vxpu config file name
-	VgpuConfigFilename = "vgpu.config"
+	VxpuConfigFileName = "vgpu.config"
 	// VxpuConfigFileName vxpu ids config file name
-	VgpuIdsConfigFilename = "vgpu-ids.config"
+	VxpuIdsConfigFileName = "vgpu-ids.config"
 	// DeviceAssign device type supported by the device plugin
-	DeviceType = "GPUs"
-	AssignedIDs                = "huawei.com/gpu-ids-new"
-	AssignedIDsToAllocate      = "huawei.com/gpu-devices-to-allocate"
-	AssignedIDsToReAllocate    = "huawei.com/gpu-devices-to-reallocate"
-	DeviceBindTime             = "huawei.com/timestamp-vgpu-handshake"
-	NodeVGPURegister           = "huawei.com/node-vgpu-handshake"
-	NodeVGPUUsed               = "huawei.com/node-vgpu-used"
+	DeviceType = "GPU"
+	AssignedIDs                = "huawei.com/vgpu-ids-new"
+	AssignedIDsToAllocate      = "huawei.com/vgpu-devices-to-allocate"
+	NodeVXPUHandshake		   = "huawei.com/node-vxpu-handshake"
+	NodeVXPURegister           = "huawei.com/node-vgpu-register"
+	NodeVXPUUsed               = "huawei.com/node-vgpu-used"
 	// AssignedNode assigned node name
-	AssignedNode               = "huawei.com/assigned-node"
+	AssignedNode               = "huawei.com/vgpu-node"
 	// NodeXpuTopology node gpu topology
 	NodeXpuTopology            = "huawei.com/node-gpu-topology"
 
@@ -68,63 +67,74 @@ var (
 	DevShmMount *v1beta1.Mount = nil
 )
 
-// Init initialize govmml
+// Init initialize gpu nvml
 func Init() error {
-	log.Infoln("Initializing NVML...")
-	ret := govmml.Init()
-	if ret != govmml.Success {
-		log.Infof("this is a GPU node, did you set the docker default runtime to nvidia ?")
+	log.Infoln("Loading NVML...")
+	if ret := gonvml.Init(); ret != gonvml.Success {
+		log.Infof("If this is a GPU node, did you set the docker default runtime to nvidia?")
+		log.Infof("If this is not a GPU node, you should not deploy device plugin on this node.")
 		return fmt.Errorf("failed to init NVML: %v", ret)
 	}
 	log.Infoln("NVML initialized successfully.")
 	return nil
 }
 
-// Uninit uninitialize govmml
+// Uninit uninitialize gpu nvml
 func Uninit() error {
-	ret := govmml.Shutdown()
-	if ret != govmml.Success {
-		log.Infof("NVML shutdown of %v returned: %v", ret)
-	}
+	ret := gonvml.Shutdown()
+	log.Infof("NVML shutdown of returned: %v", ret)	
 	return nil
 }
 
 // DeviceManager implements the IDeviceManager interface for GPU devices on NVidia devices
 type DeviceManager struct{}
 
-func check(ret govmml.ReturnType) {
-	if ret != govmml.Success {
-		log.Panicln("Fatal: ", ret)
+func check(ret gonvml.ReturnType) {
+	if ret != gonvml.Success {
+		log.Panicln("Fatal:", ret)
 	}
 }
 
 // Devices returns a list of Devices from the DeviceManager
-func (dm *DeviceManager) Devices() []*Device {
-	cnt, ret := govmml.DeviceGetCount()
+func (*DeviceManager) Devices() []*Device {
+	cnt, ret := gonvml.DeviceGetCount()
 	check(ret)
 
 	var devs []*Device
-	for i := 0; i < int(cnt); i++ {
-		dev, ret := govmml.DeviceGetHandleByIndex(i)
+	for i := 0; i < cnt; i++ {
+		dev, ret := gonvml.DeviceGetHandleByIndex(i)
 		check(ret)
 		devs = append(devs, buildDevice(dev, int32(i)))
 	}
 	return devs
 }
 
-// CheckHealth performs health checks on a set of devices, writing to the 'unhealthy' channel with any unhealthy devices
-func (dm *DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device, unhealthy chan<- *Device) {
-	eventSet, ret := govmml.EventSetCreate()
+func (*DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device, unhealthy chan<- *Device) {
+	checkHealth(stop, devices, unhealthy)
+}
+func buildDevice(dev gonvml.Device, logicID int32) *Device {
+	d := &Device{}
+	uuid, ret := d.GetUUID()
 	check(ret)
-	defer govmml.EventSetFree(eventSet)
+	dev.ID = uuid
+	dev.Health = v1beta1.Healthy
+	dev.LogicID = logicID
+	return &dev
+}
+
+// CheckHealth performs health checks on a set of devices, writing to the 'unhealthy' channel with any unhealthy devices
+func CheckHealth(stop <-chan interface{}, devices []*Device, unhealthy chan<- *Device) {
+	eventSet, ret := gonvml.EventSetCreate()
+	check(ret)
+	defer gonvml.EventSetFree(eventSet)
 
 	for _, d := range devices {
-		ndev, ret := govmml.DeviceGetHandleByUUID(d.ID)
+		ndev, ret := gonvml.DeviceGetHandleByUUID(d.ID)
 		check(ret)
 		// Register event for critical error
-		ret = govmml.DeviceRegisterEvents(ndev, govmml.EventTypeXidCriticalError, eventSet)
-		if ret != govmml.Success {
-			log.Warningf("Warning: register event for health check failed, mark it unhealthy. deviceId: %v, ret: %v", d.ID, ret)
+		ret = gonvml.DeviceRegisterEvents(ndev, gonvml.EventTypeXidCriticalError, eventSet)
+		if ret != gonvml.Success {
+			log.Warningf("Warning: register event for health check failed, mark it unhealthy. deviceId: %s, ret: %v", d.ID, ret)
 			unhealthy <- d
 			continue
 		}
@@ -136,8 +146,8 @@ func (dm *DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device,
 			return
 		default:
 		}
-		ed, ret := govmml.EventSetWait(eventSet, eventWaitTimeout)
-		if ret != govmml.Success || ed.EventType != govmml.EventTypeXidCriticalError {
+		ed, ret := gonvml.EventSetWait(eventSet, eventWaitTimeout)
+		if ret != gonvml.Success || ed.EventType != gonvml.EventTypeXidCriticalError {
 			continue
 		}
 		// TODO: ME: formalize the full list and document it.
@@ -147,9 +157,9 @@ func (dm *DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device,
 			ed.EventData == nvidiaXidErrorPreemptiveCleanup {
 			continue
 		}
-
-		uuid, ret := ed.DeviceGetUUID()
-		if ret != govmml.Success {
+		uuid, ret := ed.Device.GetUUID()
+		check(ret)
+		if len(uuid) == 0 {
 			log.Warningf("uuidCriticalError: Xid=%d, All devices will go unhealthy.", ed.EventData)
 			for _, d := range devices {
 				unhealthy <- d
@@ -158,7 +168,7 @@ func (dm *DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device,
 		}
 		for _, d := range devices {
 			if d.ID == uuid {
-				log.Warningf("uuidCriticalError: Xid=%d on Device%s, the device will go unhealthy.", ed.EventData, d.ID)
+				log.Warningf("XidCriticalError: Xid=%d on Device=%s, the device will go unhealthy.", ed.EventData, d.ID)
 				unhealthy <- d
 				break
 			}
@@ -166,74 +176,64 @@ func (dm *DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device,
 	}
 }
 
-func buildDevice(dev govmml.Device, logicID int32) *Device {
-	d := &Device{
-		Device: v1beta1.Device{
-			ID:     dev.UUID,
-			Health: v1beta1.Healthy,
-		},
-		logicID: logicID,
-	}
-	return d
-}
-
 // GetDeviceInfo create types.DeviceInfo according to Device
-func GetDeviceInfo(devs []*Device) ([]*types.DeviceInfo, error) {
+func GetDeviceInfo(devs []*Device) []*types.DeviceInfo {
 	res := make([]*types.DeviceInfo, 0, len(devs))
 	for _, dev := range devs {
-		uuid, ret := govmml.DeviceGetHandleByUUID(dev.ID)
-		if ret != govmml.Success {
-			log.Warningf("get device handle failed, deviceId: %v, ret: %v", dev.ID, ret)
+		ndev, ret := gonvml.DeviceGetHandleByUUID(dev.ID)
+		if ret != gonvml.Success {
+			log.Fatalln("get device handle failed, deviceId: %v, ret: %v", dev.ID, ret)
 			continue
 		}
-		memInfo, ret := uuid.MemoryInfo()
-		if ret != govmml.Success {
-			log.Warningf("get memory info failed, deviceId: %v, ret: %v", dev.ID, ret)
+		memInfo, ret := ndev.GetMemoryInfoV2()
+		if ret != gonvml.Success {
+			log.Fatalln("get memory info failed, deviceId: %v, ret: %v", dev.ID, ret)
 			continue
 		}
-		name, ret := uuid.Name()
-		if ret != govmml.Success {
-			log.Warningf("get name failed, deviceId: %v, ret: %v", dev.ID, ret)
+		name, ret := ndev.GetName()
+		if ret != gonvml.Success {
+			log.Fatalln("get name failed, deviceId: %v, ret: %v", dev.ID, ret)
 			continue
 		}
-		numa, err := getGpuNumaInformation(int(dev.logicID))
+		numa, err := getNumaInformation(int(dev.LogicID))
 		if err != nil {
-			log.Warningf("get numa information for device No %v failed: %v", dev.logicID, err)
+			log.Warningf("get numa information for device %d failed: %s", dev.LogicID, err)
 		}
-		registerInfoMem := int64(memInfo.Total) / (1024 * 1024)
-		registerInfo := types.DeviceInfo{
+		registeredMem := int32(memInfo.Total / 1024 / 1024)
+		log.Infof("nvml registered deviceId", dev.ID, "memory", registeredMem, "name", name)
+		res = append(res, &types.DeviceInfo{
 			Index:     dev.logicID,
 			Id:        dev.ID,
 			Count:     int32(config.DeviceSplitCount),
-			Devmem:    registerInfoMem,
-			Type:      fmt.Sprintf("%v-%v", DeviceType, resolveDeviceType(name)),
+			Devmem:    registeredMem,
+			Type:      fmt.Sprintf("%v-%v", DeviceType, resolveDeviceName(name)),
 			Health:    dev.Health == v1beta1.Healthy,
 			Numa:      int32(numa),
-		}
-		res = append(res, &registerInfo)
+		})
 	}
-	return res, nil
+	return res
 }
 
 // resolveDeviceName resolve device name to abbreviations
 // example "Tesla V100-PCIE-32GB" resolve to "V100"
-func resolveDeviceType(deviceName string) string {
-	if len(config.GPUTypeMap) == 0 {
-		return deviceName
+func resolveDeviceName(deviceName string) string {
+	if len(config.GPUTypeMap) != 0 {
+		abbreviation, ok := config.GPUTypeMap[deviceName]
+		if ok {
+			log.Infof("find abbreviation from gpu type map, deviceName: %s, abbreviation: %s",
+				deviceName, abbreviation)
+			return abbreviation
+		}
 	}
-	if abbreviation, ok := config.GPUTypeMap[deviceName]; ok {
-		log.Infof("find abbreviation in gpu type map, deviceName: %s, abbreviation: %s",
-			deviceName, abbreviation)
-		return abbreviation
-	}
-	pattern := "^[A-Z]+-[A-Z]+[0-9]+[A-Z]*"
-	rege, err := regexp.Compile(pattern)
+	pattern := `^[A-Z]+-[A-Z]+[0-9]+[A-Z]*$`
+	regex, err := regexp.Compile(pattern)
 	if err != nil {
-		log.Fatalln("regexp compile failed: ", err)
+		log.Fatalln("regexp compile failed: %s", err)
+		return strings.ReplaceAll(deviceName, " ", "")
 	}
-	nameSlice := strings.Split(deviceName, " ")
+	nameSlice := strings.Split(strings.ReplaceAll(deviceName, " ", "-"), "_")
 	for _, val := range nameSlice {
-		if rege.MatchString(val) {
+		if regex.MatchString(val) {
 			return val
 		}
 	}
@@ -241,74 +241,78 @@ func resolveDeviceType(deviceName string) string {
 }
 
 // GetVisibleDevices get visible devices for container env
-func GetVisibleDevices(devices types.ContainerDevices) string {
+func GetVisibleDevices(devReq types.ContainerDevices) string {
 	visibleDevices := make([]string, 0)
-	for _, dev := range devices {
+	for _, dev := range devReq {
 		visibleDevices = append(visibleDevices, dev.UUID)
 	}
 	return strings.Join(visibleDevices, ",")
 }
 
-// GetDeviceUsage get all process usage
+// GetDeviceUsage get all gpu process usage
 func GetXPUUsage(index, period int32) (types.DeviceUsageInfo, map[uint32]*types.ProcessUsage, error) {
-	processMap := make(map[string]types.ProcessUsage)
-	dev, ret := govmml.DeviceGetHandleByIndex(int(index))
-	if ret != govmml.Success {
-		log.Errorf("govmml.DeviceGetHandleByIndex failed: %v", ret)
-		return types.DeviceUsageInfo{}, nil, fmt.Errorf("govmml.DeviceGetHandleByIndex failed: %v", ret)
+	processMap := make(map[uint32]*types.ProcessUsage)
+	dev, ret := gonvml.DeviceGetHandleByIndex(int(index))
+	if ret != gonvml.Success {
+		log.Errorf("gonvml.DeviceGetHandleByIndex error: %v", ret)
+		return types.DeviceUsageInfo{}, nil, fmt.Errorf("gonvml.DeviceGetHandleByIndex failed: %v", ret)
 	}
 	retDeviceUsageInfo, err := getDeviceUsageInfo(dev)
 	if err != nil {
+		log.Errorf("get device usage info failed: %v", err)
 		return types.DeviceUsageInfo{}, nil, fmt.Errorf("getDeviceUsageInfo failed: %v", err)
 	}
 	// The default length of the array is 1624, the default position without data are filled with 0.
 	infos, ret := dev.GetComputeRunningProcesses()
-	if ret != govmml.Success && ret != govmml.ErrorNotFound {
-		return types.DeviceUsageInfo{}, nil, fmt.Errorf("govmml.GetComputeRunningProcesses failed: %v", ret)
+	if ret != gonvml.Success && ret != gonvml.ErrorNotFound {
+		log.Errorf("device GetComputeRunningProcesses failed: %v", ret)
+		return types.DeviceUsageInfo{}, nil, fmt.Errorf("gonvml.GetComputeRunningProcesses failed: %v", ret)
 	}
 	// The default length of the array is 1624, the default position without data are filled with 0.
-	timestamp := uint64(time.Now().Unix()) - int64(period*microSecond)
+	timestamp := uint64(time.Now().Unix() - int64(period*microSecond))
 	// Get the process utilization of different processes.
-	samples, ret := dev.DeviceGetProcessUtilization()
-	if ret != govmml.Success && ret != govmml.ErrorNotFound {
-		return types.DeviceUsageInfo{}, nil, fmt.Errorf("govmml.DeviceGetProcessUtilization failed: %v", ret)
+	samples, ret := dev.DeviceGetProcessUtilization(timestamp)
+	if ret != gonvml.Success && ret != gonvml.ErrorNotFound {
+		log.Errorf("device GetProcessUtilization failed: %v", ret)
+		return types.DeviceUsageInfo{}, nil, fmt.Errorf("gonvml.DeviceGetProcessUtilization failed: %v", ret)
 	}
 	// To prevent two info from corresponding to different processes.
 	for _, v := range infos {
 		if v.Pid == 0 {
 			break
 		}
-		p := types.ProcessUsage{VgpuMemory: v.UsedGpuMemory, ProcessorUtilization: 0}
+		p := types.ProcessUsage{ProcessMem: v.UsedGpuMemory, ProcessCoreUtilization: 0}
 		processMap[v.Pid] = &p
 	}
 	for _, v := range samples {
-		if v.VgpuID == 0 {
+		if v.Pid == 0 {
 			// if vgpuID is 0, it means the data has ended, break.
 			break
 		}
-		if _, ok := processMap[v.Pid]; ok {
-			p := types.ProcessUsage{ProcessMem: 0, ProcessorUtilization: 0}
+		if _, ok := processMap[v.Pid]; !ok {
+			p := types.ProcessUsage{ProcessMem: 0, ProcessCoreUtilization: 0}
 			processMap[v.Pid] = &p
 		}
+		p := processMap[v.Pid].ProcessCoreUtilization = uint64(v.SmUtil)
 	}
 	return retDeviceUsageInfo, processMap, nil
 }
 
-func getDeviceUsageInfo(dev govmml.Device) (types.DeviceUsageInfo, error) {
+func getDeviceUsageInfo(dev gonvml.Device) (types.DeviceUsageInfo, error) {
 	utilization, ret := dev.GetUtilizationRates()
-	if ret != govmml.Success && ret != govmml.ErrorNotFound {
-		log.Errorf("govmml.GetUtilizationRates failed: %v", ret)
-		return types.DeviceUsageInfo{}, fmt.Errorf("govmml.GetUtilizationRates failed: %v", ret)
+	if ret != gonvml.Success && ret != gonvml.ErrorNotFound {
+		log.Errorf("gonvml.GetUtilizationRates failed: %v", ret)
+		return types.DeviceUsageInfo{}, fmt.Errorf("gonvml.GetUtilizationRates failed: %v", ret)
 	}
 	powerUsage, ret := dev.GetPowerUsage()
-	if ret != govmml.Success && ret != govmml.ErrorNotFound {
-		log.Errorf("govmml.GetPowerUsage failed: %v", ret)
-		return types.DeviceUsageInfo{}, fmt.Errorf("govmml.GetPowerUsage failed: %v", ret)
+	if ret != gonvml.Success && ret != gonvml.ErrorNotFound {
+		log.Errorf("device GetPowerUsage failed: %v", ret)
+		return types.DeviceUsageInfo{}, fmt.Errorf("gonvml.GetPowerUsage failed: %v", ret)
 	}
-	temperature, ret := dev.GetTemperature()
-	if ret != govmml.Success && ret != govmml.ErrorNotFound {
-		log.Errorf("govmml.GetTemperature failed: %v", ret)
-		return types.DeviceUsageInfo{}, fmt.Errorf("govmml.GetTemperature failed: %v", ret)
+	temperature, ret := dev.GetTemperature(gonvml.TemperatureGpu)
+	if ret != gonvml.Success && ret != gonvml.ErrorNotFound {
+		log.Errorf("device GetTemperature failed: %v", ret)
+		return types.DeviceUsageInfo{}, fmt.Errorf("gonvml.GetTemperature failed: %v", ret)
 	}
 	deviceUsageInfo := types.DeviceUsageInfo{
 		CoreUtil:    utilization.Gpu,
@@ -323,45 +327,44 @@ const (
 	// defaultNvidiaSmiBinary default nvidia-smi executable path.
 	defaultNvidiaSmiBinary = "/usr/bin/nvidia-smi"
 	// nvidiaSmiCommand means the nvidia-smi command.
-	nvidiaSmiCommand = "nvidia-smi"
-	notapplicable = "N/A"
+	nvidiaSmiExecutable = "nvidia-smi"
 	// notapplicable means no numa for the specified GPU.
+	notapplicable = "N/A"
 )
 
 var (
-	gpuRegexp = regexp.MustCompile(`GPU \d+`)
+	gpuRegexp = regexp.MustCompile(`GPU (\d+)`)
 	// gpuRegexp matches a GPU device e.g. GPU 0, GPU 01 etc.
-	nvlinkRegexp = regexp.MustCompile(`NV\d+`)
-	// nvlinkRegexp matches NVLinks between devices e.g. NV1, NV2 etc.
-	splitter = regexp.MustCompile(`\s+`)
+	nvRegexp = regexp.MustCompile(`NV(\d+)`)
+	// nvRegexp matches NVLinks between devices e.g. NV1, NV2 etc.
+	splitter = regexp.MustCompile("[ \t]+")
 	// splitter is a regex to split command output into separate tokens.
-	// gpuTopologyProvider is a topology provider implementation.
 )
 
 // gpuTopologyProvider is a gpu topology provider implementation.
 type gpuTopologyProvider struct{}
 
-var _ graph.TopologyProvider = &gpuTopologyProvider{}
+var _ graph.TopologyProvider = (*gpuTopologyProvider{})(nil)
 
 // NewTopologyProvider creates an TopologyProvider instance.
 func NewTopologyProvider() graph.TopologyProvider {
 	return &gpuTopologyProvider{}
 }
 
-func (provider *gpuTopologyProvider) Topology() (string, error) {
+func (provider *gpuTopologyProvider) Topology() string {
 	graph, err := provider.buildTopologyGraph()
 	if err != nil {
-		log.Errorln("Build gpu topology error: %s", err)
-		return "", err
+		log.Errorf("build gpu topology error: %s", err)
+		return ""
 	}
-	return graph.GetTopologyGraph(), nil
+	return graph.GetTopologyGraph()
 }
 
 // buildTopologyGraph builds topology graph for gpu.
 // Currently, we get the GPU topology by parsing output of nvidia-smi output.
 func (provider *gpuTopologyProvider) buildTopologyGraph() (graph.TopologyGraph, error) {
-	stdout, err := getTopologyFromCommand()
-	if stdout == nil {
+	stdout, err := getGpuTopologyFromCommand()
+	if err != nil {
 		return nil, err
 	}
 	return parseTopologyGraph(stdout)
@@ -369,19 +372,18 @@ func (provider *gpuTopologyProvider) buildTopologyGraph() (graph.TopologyGraph, 
 
 // getTopologyFromCommand get topology output of command "nvidia-smi topo --matrix".
 func getTopologyFromCommand() (*bytes.Buffer, error) {
-	stdout := &bytes.Buffer{}
-	cmd := exec.Command(lookExecutableInPath(defaultNvidiaSmiBinary), "topo", "--matrix")
+	stdout := new(bytes.Buffer{})
+	cmd := exec.Command(lookExecutableOrDefault(nvidiaSmiExecutable, defaultNvidiaSmiBinary), "topo", "--matrix")
 	cmd.Stdout = stdout
 	if err := cmd.Run(); err != nil {
-		log.Errorln("execute %s failed: %v", cmd.String(), err)
-		return nil, err
+		return nil, fmt.Errorf("execute %q failed: %w", cmd.String(), err)
 	}
 	return stdout, nil
 }
 
 // lookExecutableInPath looks for executable file from the PATH environment variables, and return default file is not found. 
-func lookExecutableInPath(defaultFile string) string {
-	binary, err := exec.LookPath(defaultFile)
+func lookExecutableInPath(file string, defaultFile string) string {
+	binary, err := exec.LookPath(file)
 	if err != nil {
 		return defaultFile
 	}
@@ -410,13 +412,14 @@ func parseTopologyGraph(reader io.Reader) (graph.TopologyGraph, error) {
 	i := 0
 	for scanner.Scan() && i < gpuCount {
 		text := scanner.Text()
+		log.Debugf("parse topology graph line %d: %s", i, text)
 		tokens := splitter.Split(strings.TrimSpace(text), -1)
 		// tokens[0] is GPU identifier
-		for j := 1; j < len(tokens); j++ {
-			if i >= j { // means GPU itself
+		for j := 1; j < j <= gpuCount && j < len(tokens); j++ {
+			if i == j-1 { // means GPU itself
 				continue
 			}
-			g[i][j-1] = detectRate(j-1, tokens[j])
+			g[i][j-1] = detectRate(i, j-1, tokens[j])
 		}
 		i++
 	}
@@ -428,6 +431,7 @@ func parseTopologyGraph(reader io.Reader) (graph.TopologyGraph, error) {
 // Header example:
 // 		GPU0    GPU1    CPU Affinity    NUMA Affinity    GPU NUMA ID
 func getGpuCountFromHeader(header string) int {
+	log.Debugf("get gpu count from header: %s", header)
 	tokens := splitter.Split(strings.TrimSpace(header), -1)
 	count := 0
 	for _, s := range tokens {
@@ -439,22 +443,23 @@ func getGpuCountFromHeader(header string) int {
 }
 
 var (
-	nvlinkBaseRate = 50 // for WLN link type, we give it a base rate 50
-	nvlinkUnitRate = 10 // for each NVLink, it contributes extra rate to the base rate
+	nvLinkBaseRate = 50 // for WLN link type, we give it a base rate 50
+	nvLinkUnitRate = 10 // for each NVLink, it contributes extra rate to the base rate
 )
 
 // rateMap is a dictionary that lists the rate between devices based on the link type.
 // We don't find the rate definition in list, so we classify using library to detect it
 // from a dictionary.
 var rateMap = map[string]int{
-	"PHB": 10, // Connection traversing a single PCIe bridge
-	"PXB": 16, // Connection traversing multiple PCIe bridges (e.g. traversing the PCIe Host Bridge)
-	"PX":  16, // Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g. QPI/UPI)
-	"SOC": 50, // Connection traversing the SMP interconnect between NUMA nodes (e.g. QPI/UPI)
+	"PIX":  50, // Connection traversing a single PCIe bridge
+	"PXB":  40, // Connection traversing multiple PCIe bridges (e.g. traversing the PCIe Host Bridge)
+	"PXB":  30, // Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+	"NODE": 20, // Connection traversing PCIe as well as the interconnect bewteen PCIe Host Bridges within a NUMA nodes
+	"SYS":  10, // Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g. QPI/UPI)
 }
 
 // detectRate finds the rate between the devices.
-func detectRate(deviceIndex int, linkType string) int {
+func detectRate(deviceId1 string, deviceId2 string, linkType string) int {
 	matchNvLink := nvRegexp.FindStringSubmatch(linkType)
 	if len(matchNvLink) == 0 { // not nvlink
 		return rate[linkType]
@@ -469,11 +474,11 @@ func detectRate(deviceIndex int, linkType string) int {
 		return 0
 	}
 	// each nvlink contribute nvlink unit rate to teh nv link base rate
-	return nvlinkBaseRate + nvlinkBaseRate*int(n)
+	return nvLinkBaseRate + nvLinkUnitRate*int(n)
 }
 
 // getGpuNumaInformation return numa information by provided card index.
-func getGpuNumaInformation(index int) (int, error) {
+func getNumaInformation(index int) (int, error) {
 	reader, err := getGpuTopologyFromCommand()
 	if err != nil {
 		return 0, err
@@ -495,9 +500,9 @@ func parseNvidiaNumaInfo(index int, reader io.Reader) (int, error) {
 		if !strings.Contains(tokens[0], target) {
 			continue
 		}
-		log.Debugf("topology row of GPU%d tokens: %s, length: %d", index, tokens, len(tokens))
+		log.Debugf("topology row of GPU%d: tokens: %s, length: %d", index, tokens, len(tokens))
 		if numaAffinityColumnIndex < len(tokens) {
-			if tokens[numaAffinityColumnIndex] == notapplicable {
+			if tokens[numaAffinityColumnIndex] == notApplicable {
 				log.Debugf("current card %d has not established numa topology", index)
 				return 0, nil
 			}
@@ -510,7 +515,7 @@ func parseNvidiaNumaInfo(index int, reader io.Reader) (int, error) {
 // getNumaAffinityColumnIndex get the index of "NUMA Affinity" from the topology header.
 func getNumaAffinityColumnIndex(header string) int {
 	index := 0
-	tokens := strings.Split(strings.ReplaceAll(header, "little", "lt"), "lt")
+	tokens := strings.Split(strings.ReplaceAll(header, "\t\t", "\t"), "\t")
 	// The topology header is as follows
 	// GPU0    GPU1    CPU Affinity    NUMA Affinity    GPU NUMA ID  <-- header
 	// Legend: ...
@@ -530,13 +535,15 @@ func getNumaAffinityColumnIndex(header string) int {
 
 // GetVersionInfo get version information
 func GetVersionInfo() (string, int, error) {
-	driverVersion, ret := govmml.SysGetDriverVersion()
-	if ret != govmml.Success {
-		return "", 0, fmt.Errorf("govmml.SysGetDriverVersion error")
+	driverVersion, ret := gonvml.SystemGetDriverVersion()
+	if ret != gonvml.Success {
+		log.Errorf("get driver Version error: %v", ret)
+		return "", 0, errors.New("get driver Version error")
 	}
-	cudaVersion, ret := govmml.SysGetCudaDriverVersion()
-	if ret != govmml.Success {
-		return driverVersion, 0, fmt.Errorf("govmml.SysGetCudaDriverVersion error")
+	cudaVersion, ret := gonvml.SystemGetCudaDriverVersion()
+	if ret != gonvml.Success {
+		log.Errorf("get cuda driver Version error: %v", ret)
+		return driverVersion, 0, errors.New("get cuda Version error")
 	}
 	return driverVersion, cudaVersion, nil
 }

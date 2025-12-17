@@ -21,8 +21,8 @@ import (
 )
 
 const (
-    pidsSockPath="/var/lib/xpu/pids.sock"
-    dialTimeout=5
+    pidsSockPath = "/var/lib/xpu/pids.sock"
+    dialTimeout  = 5 
 )
 
 func updatePidsConfig(cgroupPath string) error {

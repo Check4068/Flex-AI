@@ -10,18 +10,18 @@ envs:
     resource:
       type: docker
       image: ${image_name_x86}
-      resource_class: 160326
+      resource_class: 16U32G
       mode: toolbox
-  - condition: env_type == 'vpc'
+  - condition: env_type == "vpc"
     resource:
       type: docker
       image: ${image_name_x86}
       pool: ${img_pool_x86}
-      resource_class: 160326
+      resource_class: 16U32G
 
 buildspace:
   fixed: true
-  path: /usr1/workspaace
+  path: /usr1/workspace
   
 params:
   - name: product

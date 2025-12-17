@@ -28,7 +28,7 @@ type ContainerDevice struct {
 	UUID      string
 	Type      string
 	Usedmem   int32
-	UsedCores int32
+	Usedcores int32
 	Vid       int32
 }
 
@@ -87,7 +87,7 @@ type VxpuDevice struct {
 
 // ProcessUsage description of process usage on xpu
 type ProcessUsage struct {
-	ProcessNum             uint64
+	ProcessMem             uint64
 	ProcessCoreUtilization uint64
 }
 
