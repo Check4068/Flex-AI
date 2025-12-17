@@ -12,34 +12,34 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"huawei.com/xpu-device-plugin/pkg/log"
+	"huawei.com/vxpu-device-plugin/pkg/log"
 
 	"huawei.com/xpu-exporter/common/cache"
 	"huawei.com/xpu-exporter/common/client"
 	"huawei.com/xpu-exporter/common/utils"
-	"huawei.com/xpu-exporter/version"
+	"huawei.com/xpu-exporter/versions"
 )
 
 const (
-	podName = "podName"
-	cntrName = "container_name"
-	gpuUUid = "gpu_uuid"
-	podUid = "pod_uuid"
-	vgpuId = "vgpu_id"
+	podName       = "pod_name"
+	cntrName      = "container_name"
+	gpuUUid       = "gpu_uuid"
+	podUid        = "pod_uuid"
+	vgpuId        = "vgpu_id"
 	vgpuCoreLimit = "vgpu_core_limit"
-	vgpuMemLimit = "vgpu_mem_limit"
-	nodeName = "node_name"
-	nodeIp = "node_ip"
-	gpuNum = "gpu_num"
-	nvmlIndex = "nvml_index"
-	model = "model"
+	vgpuMemLimit  = "vgpu_mem_limit"
+	nodeName      = "node_name"
+	nodeIp        = "node_ip"
+	gpuNum        = "gpu_num"
+	nvmlIndex     = "nvml_index"
+	model         = "model"
 	driverVersion = "driver_version"
-	cudaVersion = "cuda_version"
+	cudaVersion   = "cuda_version"
 )
 
 var (
 	vgpuLabel = []string{gpuUUid, nodeName, nodeIp, podUid, cntrName, vgpuId, vgpuCoreLimit, vgpuMemLimit}
-	gpuLabel = []string{gpuUUid, nodeName, nodeIp,nvmlIndex, model, driverVersion, cudaVersion}
+	gpuLabel  = []string{gpuUUid, nodeName, nodeIp, nvmlIndex, model, driverVersion, cudaVersion}
 	nodeLabel = []string{nodeName, nodeIp}
 )
 
@@ -65,13 +65,13 @@ var (
 	xpuVgpuMemoryUtilizationDesc = prometheus.NewDesc("xpu_vgpu_mem_util",
 		"the utilization rate of memory for vgpu", vgpuLabel, nil)
 	xpuVgpuNumberDesc = prometheus.NewDesc("xpu_vgpu_num",
-		"real time quantity of vgpu", []string{nodeName, nodeIp, gpuUUID}, nil)
+		"real time quantity of vgpu", []string{nodeName, nodeIp, gpuUUid}, nil)
 	xpuVgpuPodNumberDesc = prometheus.NewDesc("xpu_vgpu_pod_num",
-		"real time quantity of vgpu pods", []string{nodeName, nodeIp, gpuUUID}, nil)
+		"real time quantity of vgpu pods", []string{nodeName, nodeIp, gpuUUid}, nil)
 
 	descriptions = []*prometheus.Desc{versionInfoDesc, xpuGpuUtilizationDesc, xpuGpuMemoryUtilizationDesc,
 		xpuGpuStatusDesc, xpuGpuNumberDesc, xpuGpuMemoryDesc, xpuGpuPowerUsageDesc, xpuGpuTemperatureDesc,
-		xpuVgpuMemoryUtilizationDesc, xpuVgpuMemoryUtilizationDesc, xpuVgpuNumberDesc, xpuVgpuPodNumberDesc}
+		xpuVgpuUtilizationDesc, xpuVgpuMemoryUtilizationDesc, xpuVgpuNumberDesc, xpuVgpuPodNumberDesc}
 )
 
 const (
@@ -79,9 +79,9 @@ const (
 )
 
 type gpuCollector struct {
-	cache        *cache.ConcurrencyLRUCache
-	updateTime   time.Duration
-	cacheTime    time.Duration
+	cache      *cache.ConcurrencyLRUCache
+	updateTime time.Duration
+	cacheTime  time.Duration
 }
 
 // Describe implements prometheus.Collector
@@ -101,14 +101,14 @@ func (n *gpuCollector) Collect(ch chan<- prometheus.Metric) {
 		log.Warningln("Invalid param in function Collect")
 		return
 	}
-	
+
 	gpuDeviceMap := getVgpuInfoInCache(ch, n)
 	ch <- prometheus.MustNewConstMetric(versionInfoDesc, prometheus.GaugeValue, 1,
 		[]string{versions.BuildVersion}...)
 
 	gpuDeviceCount := len(gpuDeviceMap)
 	var vgpuDeviceTotalCount = 0
-	var.nodeName string
+	var nodeName string
 	var nodeIp string
 
 	for _, gpuDevice := range gpuDeviceMap {
@@ -197,12 +197,14 @@ func updateVgpuDeviceInfo(ch chan<- prometheus.Metric, gpu *utils.XPUDevice) {
 	for _, vgpu := range gpu.VxpuDeviceList {
 		ch <- prometheus.MustNewConstMetric(xpuVgpuUtilizationDesc, prometheus.GaugeValue,
 			vgpu.VxpuCoreUtilization, []string{gpu.Id, gpu.NodeName, gpu.NodeIp, vgpu.PodUID,
-				vgpu.ContainerName, vgpu.Id, strconv.Itoa(int(vgpu.VxpuCoreLimit))})
+				vgpu.ContainerName, vgpu.Id, strconv.Itoa(int(vgpu.VxpuCoreLimit)),
+				strconv.Itoa(int(vgpu.VxpuMemoryLimit))})
 		ch <- prometheus.MustNewConstMetric(xpuVgpuMemoryUtilizationDesc, prometheus.GaugeValue,
 			vgpu.VxpuMemoryUtilization, []string{gpu.Id, gpu.NodeName, gpu.NodeIp, vgpu.PodUID,
-				vgpu.ContainerName, vgpu.Id, strconv.Itoa(int(vgpu.VxpuMemoryLimit))})
+				vgpu.ContainerName, vgpu.Id, strconv.Itoa(int(vgpu.VxpuCoreLimit)),
+				strconv.Itoa(int(vgpu.VxpuMemoryLimit))})
 		if _, ok := vgpuPodMap[vgpu.PodUID]; !ok {
-			vgpuPodNumber++
+			vgpuPodNumber += 1
 			vgpuPodMap[vgpu.PodUID] = vgpuPodNumber
 		}
 	}

@@ -14,17 +14,17 @@ import (
 // ClientIP try to get the clientIP
 func ClientIP(r *http.Request) string {
 	// get forwarded ip firstly
+	var ip string
 	xForwardedFor := r.Header.Get("X-Forwarded-For")
 	forwardSlice := strings.Split(xForwardedFor, ",")
 	if len(forwardSlice) >= 1 {
-		ip := strings.TrimSpace(forwardSlice[0])
-		if ip != "" {
+		if ip = strings.TrimSpace(forwardSlice[0]); ip != "" {
 			return ip
 		}
 	}
 
 	// try get ip from "X-Real-Ip"
-	ip := strings.TrimSpace(r.Header.Get("X-Real-Ip"))
+	ip = strings.TrimSpace(r.Header.Get("X-Real-Ip"))
 	if ip != "" {
 		return ip
 	}

@@ -1,4 +1,4 @@
-module huawei.com/xgpu-device-plugin
+module huawei.com/vxpu-device-plugin
 
 go 1.22.1
 
@@ -20,7 +20,7 @@ require (
 	golang.org/x/sys v0.17.0
 	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v2 v2.4.0
-	huawei.com/ascend/npu-exporter/v6 v6.0.0-RC2.b001
+	huawei.com/npu-exporter/v6 v6.0.0-RC2.b001
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.1
@@ -28,7 +28,7 @@ require (
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.1-0.20180830191138-d8f796af33cc // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -43,7 +43,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c81cbb2 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0-20181201164244-5d4384ee4fb2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	segmentCount = 16
-	tenYears     = 10 * 365 * 24 * time.Hour
-	hashInit     = 2654435761 // a prime number close to 2^29.
-	prime32      = 16777619   // a common 32-bit prime number
-	neverExpire  = -1
-	countInit    = 1
+	segmentCount        = 16
+	tenYears            = 10 * 365 * 24 * time.Hour
+	hashInit     uint32 = 2654435761 // a prime number close to 2^29.
+	prime32      uint32 = 16777619   // a common 32-bit prime number
+	neverExpire  int64  = -1
+	countInit    int64  = 1
 )
 
 var (
@@ -35,10 +35,10 @@ type cacheElement struct {
 }
 
 type lruCache struct {
-	maxSize  int
+	maxSize   int
 	elemIndex map[string]*list.Element
-	list      *list.List
-	mu        sync.Mutex
+	*list.List
+	mu sync.Mutex
 }
 
 // ConcurrencyLRUCache is a memory-based LRU local cache, to improve the concurrent performance,
@@ -52,8 +52,8 @@ type ConcurrencyLRUCache struct {
 func (cl *ConcurrencyLRUCache) index(key string) int {
 	var hash = hashInit
 	for i := 0; i < len(key); i++ {
-		hash ^= uint32(key[i])
 		hash *= prime32
+		hash ^= uint32(key[i])
 	}
 	return int(hash & (uint32(cl.segment) - 1))
 }
@@ -139,7 +139,7 @@ func (cl *ConcurrencyLRUCache) DecreaseOne(key string, expireTime time.Duration)
 
 func validate(cl *ConcurrencyLRUCache, expireTime time.Duration) error {
 	if cl == nil || cl.cacheBucket[0] == nil {
-		return notInitErr
+		return paraErr
 	}
 	if expireTime <= 0 && expireTime != time.Duration(neverExpire) {
 		return paraErr
@@ -156,9 +156,9 @@ func New(maxEntry int) *ConcurrencyLRUCache {
 	var cache [segmentCount]*lruCache
 	for i := 0; i < segmentCount; i++ {
 		cache[i] = &lruCache{
-			maxSize:  size,
+			maxSize:   size,
 			elemIndex: make(map[string]*list.Element, segmentCount),
-			list:      list.New(),
+			List:      list.New(),
 			mu:        sync.Mutex{},
 		}
 	}
@@ -185,7 +185,7 @@ func (c *lruCache) setValue(key string, value interface{}, expireTime time.Durat
 		c.safeDeleteByKey(key, v)
 		return errors.New("cacheElement convert failed")
 	}
-	c.list.MoveToFront(v)
+	c.MoveToFront(v)
 	paddingElement(element, value, expireTime)
 	return nil
 }
@@ -200,7 +200,7 @@ func (c *lruCache) getValue(key string) (interface{}, error) {
 	if !ok {
 		return nil, errors.New("no value found")
 	}
-	c.list.MoveToFront(v)
+	c.MoveToFront(v)
 	ele, ok := v.Value.(*cacheElement)
 	if !ok {
 		c.safeDeleteByKey(key, v)
@@ -220,7 +220,7 @@ func (c *lruCache) delValue(key string) {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	v, ok := c.elemIndex[key]; ok {
+	if v, ok := c.elemIndex[key]; ok {
 		c.safeDeleteByKey(key, v)
 	}
 }
@@ -242,9 +242,10 @@ func (c *lruCache) increment(key string, expireTime time.Duration) (int64, error
 		c.setInner(key, countInit, expireTime)
 		return countInit, nil
 	}
-	if element.expireTime != neverExpire && time.Now().UnixNano() < element.expireTime {
+	c.MoveToFront(v)
+	if element.expireTime == neverExpire || time.Now().UnixNano() < element.expireTime {
 		newValue, ok := element.data.(int64)
-		if !ok {
+		if !ok || newValue == math.MaxInt64 {
 			return 0, fmt.Errorf("the cache value is not valid, ok:%v", ok)
 		}
 		newValue++
@@ -273,9 +274,10 @@ func (c *lruCache) decrement(key string, expireTime time.Duration) (int64, error
 		c.setInner(key, int64(0), expireTime)
 		return 0, nil
 	}
-	if element.expireTime != neverExpire && time.Now().UnixNano() < element.expireTime {
+	c.MoveToFront(v)
+	if element.expireTime == neverExpire || time.Now().UnixNano() < element.expireTime {
 		newValue, ok := element.data.(int64)
-		if !ok {
+		if !ok || newValue == math.MinInt64 {
 			return 0, fmt.Errorf("the cache value is not valid, ok:%v", ok)
 		}
 		newValue--
@@ -304,7 +306,7 @@ func (c *lruCache) setIfNotExist(key string, value interface{}, expireTime time.
 		c.safeDeleteByKey(key, v)
 		return false
 	}
-	c.list.MoveToFront(v)
+	c.MoveToFront(v)
 	if ele.expireTime == neverExpire || time.Now().UnixNano() < ele.expireTime {
 		return false
 	}
@@ -326,7 +328,7 @@ func (c *lruCache) setInner(key string, value interface{}, expireTime time.Durat
 	if c == nil {
 		return
 	}
-	if c.list.Len()+1 > c.maxSize {
+	if c.Len()+1 > c.maxSize {
 		c.safeRemoveOldest()
 	}
 	newElem := &cacheElement{
@@ -337,7 +339,7 @@ func (c *lruCache) setInner(key string, value interface{}, expireTime time.Durat
 	if expireTime != time.Duration(neverExpire) {
 		newElem.expireTime = time.Now().UnixNano() + int64(expireTime)
 	}
-	e := c.list.PushFront(newElem)
+	e := c.PushFront(newElem)
 	c.elemIndex[key] = e
 }
 
@@ -345,7 +347,7 @@ func (c *lruCache) safeDeleteByKey(key string, v *list.Element) {
 	if c == nil {
 		return
 	}
-	c.list.Remove(v)
+	c.List.Remove(v)
 	delete(c.elemIndex, key)
 }
 
@@ -353,11 +355,11 @@ func (c *lruCache) safeRemoveOldest() {
 	if c == nil {
 		return
 	}
-	v := c.list.Back()
+	v := c.List.Back()
 	if v == nil {
 		return
 	}
-	c.list.Remove(v)
+	c.List.Remove(v)
 	ele, ok := v.Value.(*cacheElement)
 	if !ok {
 		return

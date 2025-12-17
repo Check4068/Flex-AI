@@ -57,8 +57,8 @@ func (x *GetPidsRequest) ProtoReflect() protoreflect.Message {
 }
 
 // Deprecated: Use GetPidsRequest.ProtoReflect.Descriptor instead.
-func (*GetPidsRequest) Descriptor() ([][]byte, [][]int) {
-	return file_api_proto_rawDescGZIP(), [][]int{0}
+func (*GetPidsRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetPidsRequest) GetCgroupPath() string {
@@ -105,8 +105,8 @@ func (x *GetPidsResponse) ProtoReflect() protoreflect.Message {
 }
 
 // Deprecated: Use GetPidsResponse.ProtoReflect.Descriptor instead.
-func (*GetPidsResponse) Descriptor() ([][]byte, [][]int) {
-	return file_api_proto_rawDescGZIP(), [][]int{1}
+func (*GetPidsResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetPidsResponse) GetEncodedPids() string {
@@ -153,8 +153,8 @@ func (x *GetAllVxpuInfoRequest) ProtoReflect() protoreflect.Message {
 }
 
 // Deprecated: Use GetAllVxpuInfoRequest.ProtoReflect.Descriptor instead.
-func (*GetAllVxpuInfoRequest) Descriptor() ([][]byte, [][]int) {
-	return file_api_proto_rawDescGZIP(), [][]int{2}
+func (*GetAllVxpuInfoRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetAllVxpuInfoRequest) GetPeriod() string {
@@ -201,8 +201,8 @@ func (x *GetAllVxpuInfoResponse) ProtoReflect() protoreflect.Message {
 }
 
 // Deprecated: Use GetAllVxpuInfoResponse.ProtoReflect.Descriptor instead.
-func (*GetAllVxpuInfoResponse) Descriptor() ([][]byte, [][]int) {
-	return file_api_proto_rawDescGZIP(), [][]int{3}
+func (*GetAllVxpuInfoResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetAllVxpuInfoResponse) GetVxpuInfos() string {
@@ -263,15 +263,16 @@ var file_api_proto_goTypes = []any{
 	(*GetAllVxpuInfoResponse)(nil), // 3: GetAllVxpuInfoResponse
 }
 
-var file_api_proto_depIdxs = [][]int{
-	0, // 0: PidsService.GetPids:input_type -> GetPidsRequest
-	1, // 1: PidsService.GetPids:output_type -> GetPidsResponse
-	2, // 2: PidsService.GetAllVxpuInfo:input_type -> GetAllVxpuInfoRequest
-	3, // 3: PidsService.GetAllVxpuInfo:output_type -> GetAllVxpuInfoResponse
-	// [2:4] is the sub-list for method input_type
-	2, // [2:4][0:2] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+var file_api_proto_depIdxs = []int32{
+	0,
+	2,
+	1,
+	3,
+	2,
+	0,
+	0,
+	0,
+	0,
 }
 
 func init() { file_api_proto_init() }
@@ -279,7 +280,7 @@ func file_api_proto_init() {
 	if File_api_proto != nil {
 		return
 	}
-	if protoimpl.UnsafeEnabled {
+	if !protoimpl.UnsafeEnabled {
 		file_api_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch val := v.(*GetPidsRequest); i {
 			case 0:

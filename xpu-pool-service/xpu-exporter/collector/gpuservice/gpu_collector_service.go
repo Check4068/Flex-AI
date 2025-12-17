@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"huawei.com/xpu-device-plugin/pkg/log"
 	"huawei.com/xpu-exporter/collector"
 	"huawei.com/xpu-exporter/common/cache"
 	"huawei.com/xpu-exporter/common/client"
@@ -18,15 +17,15 @@ import (
 
 const (
 	// CollectorName for gpu collector
-	CollectorName         = "GPU"
-	vgpuInfoCacheKey      = "xpu-exporter-vgpu-info"
-	updateCachePattern    = "update cache,key is %s"
-	tickerFailedPattern   = "%s ticker failed, task shutdown"
+	CollectorName       = "gpu"
+	vgpuInfoCacheKey    = "xpu-exporter-vgpu-info"
+	updateCachePattern  = "update cache,key is %s"
+	tickerFailedPattern = "%s ticker failed, task shutdown"
 )
 
 type gpuCollectorService struct {
 	serviceName string
-	collector   *gpuCollector
+	collector   gpuCollector
 }
 
 // New create one gpu collector service instance
@@ -41,12 +40,12 @@ func (s *gpuCollectorService) GetName() string {
 
 // CreateCollector create a GPU collector instance that implements the Prometheus collector interface.
 func (s *gpuCollectorService) CreateCollector(cacheTime time.Duration, updateTime time.Duration) prometheus.Collector {
-	s.collector = &gpuCollector{
-		cache:     cache.New(cacheSize),
-		cacheTime: cacheTime,
+	s.collector = gpuCollector{
+		cache:      cache.New(cacheSize),
+		cacheTime:  cacheTime,
 		updateTime: updateTime,
 	}
-	return s.collector
+	return &s.collector
 }
 
 // Start start collect gpu monitoring data
@@ -71,21 +70,13 @@ func setVgpuInfoToCache(ctx context.Context, group *sync.WaitGroup, n *gpuCollec
 	for {
 		select {
 		case <-ctx.Done():
-			log.Infoln("received the stop signal, STOP vgpu info collect")
 			return
 		default:
-			vgpuInfo, err := client.GetAllVxpuInfo()
+			_, err := client.GetAllVxpuInfo()
 			if err != nil {
-				log.Errorf("get vgpuInfo error: %v", err)
 				return
 			}
-			if err = n.cache.Set(vgpuInfoCacheKey, vgpuInfo, n.cacheTime); err != nil {
-				log.Errorln(err)
-			} else {
-				log.Infof(updateCachePattern, vgpuInfoCacheKey)
-			}
 			if _, ok := <-ticker.C; !ok {
-				log.Errorf(tickerFailedPattern, vgpuInfoCacheKey)
 				return
 			}
 		}

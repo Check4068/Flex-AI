@@ -2,7 +2,7 @@
  *Copyright(c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
 
-//Package npuservice implement the gpu collector service.
+// Package npuservice implement the gpu collector service.
 package npuservice
 
 import (
@@ -22,24 +22,24 @@ const (
 
 type npuCollectorService struct {
 	serviceName string
-	collector npuCollector
+	collector   npuCollector
 }
 
 // New create one npu collector service instance
-func New(new string) colllector.ICollectorService {
+func New(name string) collector.ICollectorService {
 	return &npuCollectorService{serviceName: name}
 }
 
-//GetName obtains the service name.
+// GetName obtains the service name.
 func (s *npuCollectorService) GetName() string {
 	return s.serviceName
 }
 
 // CreateCollector create a NPU collector instance that implements the Prometheus collector interface.
 func (s *npuCollectorService) CreateCollector(cacheTime time.Duration, updateTime time.Duration) prometheus.Collector {
-	s.collector = npuCollector {
-		cache: cache.New(cacheSize),
-		cacheTime: cacheTime,
+	s.collector = npuCollector{
+		cache:      cache.New(cacheSize),
+		cacheTime:  cacheTime,
 		updateTime: updateTime,
 	}
 	return &s.collector
