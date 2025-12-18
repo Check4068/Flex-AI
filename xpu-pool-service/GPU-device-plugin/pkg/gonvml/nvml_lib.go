@@ -80,7 +80,7 @@ func (l *library) Shutdown() NvmlRetType {
 	return ret
 }
 
-func (l *library) DeviceCount() (int, NvmlRetType) {
+func (l *library) DeviceGetCount() (int, NvmlRetType) {
 	var DeviceCount uint32
 	ret := nvmlDeviceGetCountWrapper(&DeviceCount)
 	return int(DeviceCount), ret
@@ -88,24 +88,24 @@ func (l *library) DeviceCount() (int, NvmlRetType) {
 
 func (l *library) SystemGetDriverVersion() (string, NvmlRetType) {
 	Version := make([]byte, SystemDriverVersionBufferSize)
-	ret := nvmlSystemGetDriverVersionWrapper(Version[:], SystemDriverVersionBufferSize)
+	ret := nvmlSystemGetDriverVersionWrapper(&Version[0], SystemDriverVersionBufferSize)
 	return string(Version[:clen(Version)]), ret
 }
 
 func (l *library) SystemGetCudaDriverVersion() (int, NvmlRetType) {
-	var CudaDriverVersion uint32
+	var CudaDriverVersion int32
 	ret := nvmlSystemGetCudaDriverVersionWrapper(&CudaDriverVersion)
 	return int(CudaDriverVersion), ret
 }
 
 func (l *library) DeviceGetHandleByIndex(index int) (Device, NvmlRetType) {
-	var device NvmlDevice
+	var device nvmlDevice
 	ret := nvmlDeviceGetHandleByIndexWrapper(uint32(index), &device)
 	return device, ret
 }
 
 func (l *library) DeviceGetHandleByUUID(uuid string) (Device, NvmlRetType) {
-	var device NvmlDevice
+	var device nvmlDevice
 	ret := nvmlDeviceGetHandleByUUIDWrapper(uuid+string(rune(0)), &device)
 	return device, ret
 }
@@ -132,8 +132,8 @@ func (l *library) DeviceGetMultiGpuBoard(device Device) (int, NvmlRetType) {
 	return device.GetMultiGpuBoard()
 }
 
-func (l *library) DeviceGetTopologyCommonAncestor(device1 Device, device2 Device, level GpuTopologyLevel) (Device, NvmlRetType) {
-	return device1.GetTopologyCommonAncestor(device2, level)
+func (l *library) DeviceGetTopologyCommonAncestor(device1 Device, device2 Device) (GpuTopologyLevel, NvmlRetType) {
+	return device1.GetTopologyCommonAncestor(device2)
 }
 
 func (l *library) DeviceGetTopologyNearestGpus(device Device, level GpuTopologyLevel) ([]Device, NvmlRetType) {

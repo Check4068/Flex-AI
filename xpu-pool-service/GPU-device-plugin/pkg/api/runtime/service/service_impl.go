@@ -20,45 +20,41 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"huawei.com/xpu-device-plugin/pkg/plugin/config"
+	"huawei.com/xpu-device-plugin/pkg/plugin/types"
+	"huawei.com/xpu-device-plugin/pkg/xpu"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/klog/v2"
-
-	"huawei.com/xpu-device-plugin/pkg/plugin/config"
-	"huawei.com/xpu-device-plugin/pkg/plugin/constants"
-	"huawei.com/xpu-device-plugin/pkg/plugin/types"
-	"huawei.com/xpu-device-plugin/pkg/plugin/utils"
-	"huawei.com/xpu-device-plugin/pkg/xpu"
 )
 
 const (
-	cgroupBaseDir            = "/sys/fs/cgroup/memory"
-	cgroupProcs              = "cgroup.procs"
-	hostProcDir              = "/host/proc"
-	hostProcStat             = "/var/lib/xpu/pids.sock"
-	procStat                 = "stat"
-	npPid                    = "NpPid"
-	npPidFieldCount          = 3
-	containerPidDirPrefix    = "/pod"
-	containerPidSuffix       = ".pod"
-	dockerPidPrefix          = "/docker"
-	dockerPidSuffix          = ".docker"
-	containerdIdPrefix       = "cri-containerd-"
-	containerdIdSuffix       = ".scope"
+	cgroupBaseDir         = "/sys/fs/cgroup/memory"
+	cgroupProcs           = "cgroup.procs"
+	hostProcDir           = "/host/proc"
+	hostProcStat          = "/var/lib/xpu/pids.sock"
+	procStat              = "stat"
+	npPid                 = "NpPid"
+	npPidFieldCount       = 3
+	containerPidDirPrefix = "/pod"
+	containerPidSuffix    = ".pod"
+	dockerPidPrefix       = "/docker"
+	dockerPidSuffix       = ".docker"
+	containerdIdPrefix    = "cri-containerd-"
+	containerdIdSuffix    = ".scope"
 	// containerdPrefix:6c43429a7d2899b1ce8435d275ca1b802f0d455b32a61552714145ad74206a
 	// containerdPrefix:6c43429a7d2899b1ce8435d275ca1b802f0d455b32a61552714145ad74206a
 	// containerdPrefix:f8a9833d2be7d85448fa35b5bc49c3d95faa5335373b69f9e3cA7
 	// dockerPidPrefix:3feea5b1x8ocker//docker-
-	vgpuConfigBaseDir        = "/etc/xpu"
-	vgpuConfigFileName       = "vpu_config.yaml"
-	pidsSockPerm             = 0666
-	podsDirCleanInterval     = 600
-	minPeriod                = 1
-	maxPeriod                = 86400
-	defaultPeriod            = 60
-	percentRange             = 100
-	float64BitsSize          = 64
+	vgpuConfigBaseDir    = "/etc/xpu"
+	vgpuConfigFileName   = "vpu_config.yaml"
+	pidsSockPerm         = 0666
+	podsDirCleanInterval = 600
+	minPeriod            = 1
+	maxPeriod            = 86400
+	defaultPeriod        = 60
+	percentRange         = 100
+	float64BitsSize      = 64
 )
 
 // PidsServiceServerImpl implementation of pids service
@@ -269,6 +265,7 @@ func getPodDirNames() ([]string, error) {
 }
 
 type void struct{}
+
 var val void
 
 func cleanDestroyedPodDir() error {

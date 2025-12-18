@@ -13,11 +13,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/agiledragon/gommonkey/v2"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"huawei.com/xpu-device-plugin/pkg/plugin/types"
 	"huawei.com/xpu-device-plugin/pkg/plugin/util"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -175,12 +174,12 @@ func TestCleanDestroyedPodDir(t *testing.T) {
 func makeXpuDeviceAndVgpuDevices() (map[string]*types.XpuDevice, types.VgpuDevices) {
 	xpuDevices := make(map[string]*types.XpuDevice)
 	device := types.XpuDevice{
-		Index:  6,
-		ID:     "id0",
-		Type:   "NVIDIA",
-		Count:  20,
-		Memory: types.Memory{Total: 200},
-		Health: true,
+		Index:          6,
+		ID:             "id0",
+		Type:           "NVIDIA",
+		Count:          20,
+		Memory:         types.Memory{Total: 200},
+		Health:         true,
 		VgpuDeviceList: types.VgpuDevices{},
 	}
 	xpuDevices["id0"] = &device
@@ -227,24 +226,24 @@ func TestSetVgpuDevices(t *testing.T) {
 
 	expectedVgpuDevices := types.VgpuDevices{}
 	expectedDev0 := types.VgpuDevice{
-		Id:                   "id0-0",
-		Gpuid:                "id0",
-		PodUID:               "pod0",
-		ContainerName:        "container0",
-		VgpuMemoryUsed:       48,
-		VgpuCoreUtilization:  15,
-		VgpuMemoryLimit:      1 * 1024,
-		VgpuCoreLimit:        5,
+		Id:                  "id0-0",
+		Gpuid:               "id0",
+		PodUID:              "pod0",
+		ContainerName:       "container0",
+		VgpuMemoryUsed:      48,
+		VgpuCoreUtilization: 15,
+		VgpuMemoryLimit:     1 * 1024,
+		VgpuCoreLimit:       5,
 	}
 	expectedDev1 := types.VgpuDevice{
-		Id:                   "id0-1",
-		Gpuid:                "id0",
-		PodUID:               "pod1",
-		ContainerName:        "container1",
-		VgpuMemoryUsed:       48,
-		VgpuCoreUtilization:  20,
-		VgpuMemoryLimit:      1 * 1024,
-		VgpuCoreLimit:        5,
+		Id:                  "id0-1",
+		Gpuid:               "id0",
+		PodUID:              "pod1",
+		ContainerName:       "container1",
+		VgpuMemoryUsed:      48,
+		VgpuCoreUtilization: 20,
+		VgpuMemoryLimit:     1 * 1024,
+		VgpuCoreLimit:       5,
 	}
 	expectedVgpuDevices = append(expectedVgpuDevices, expectedDev0)
 	expectedVgpuDevices = append(expectedVgpuDevices, expectedDev1)

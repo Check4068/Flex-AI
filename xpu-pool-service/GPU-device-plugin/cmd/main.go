@@ -3,14 +3,14 @@
  */
 
 // Package main implements xpu device plugin
-//用于XPU设备资源管理和发现
+// 用于XPU设备资源管理和发现
 package main
 
 import (
-    "flag"
-    "fmt"
-    "os"
-    "path"
+	"flag"
+	"fmt"
+	"os"
+	"path"
 	"path/filepath"
 	"syscall"
 
@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	xpuSockPath                 = "xpu.sock"                                  // XPU 设备插件的 Unix Socket 文件名
-	defaultDeviceSplitNum 		= 2                                           // 默认设备拆分数量
-	defaultLogDir               = "/var/log/xpu/xpu-device-plugin"            // 默认日志目录
+	xpuSockPath           = "xpu.sock"                       // XPU 设备插件的 Unix Socket 文件名
+	defaultDeviceSplitNum = 2                                // 默认设备拆分数量
+	defaultLogDir         = "/var/log/xpu/xpu-device-plugin" // 默认日志目录
 )
 
 var (
@@ -60,7 +60,7 @@ func events(watcher *fsnotify.Watcher, sigs chan os.Signal, pluginInst *plugin.D
 				// 其他信号（SIGINT、SIGTERM、SIGQUIT）：优雅关闭
 				log.Infof("Received signal %v, shutting down.", s)
 				pluginInst.Stop() // 停止设备插件服务
-				return false       // 返回 false 退出主循环
+				return false      // 返回 false 退出主循环
 			}
 		}
 	}
@@ -69,7 +69,7 @@ func events(watcher *fsnotify.Watcher, sigs chan os.Signal, pluginInst *plugin.D
 func start() error {
 	// 设置文件创建权限掩码为 0，允许创建文件时有完全权限
 	syscall.Umask(0)
-	
+
 	// 初始化日志系统，日志文件保存在配置的日志目录
 	logFileName := path.Join(config.LogDir, "xpu-device-plugin.log")
 	log.InitLogging(logFileName)
@@ -96,7 +96,7 @@ func start() error {
 	sigs := watchers.NewOSWatcher(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	// 创建并启动设备缓存，用于缓存设备信息和状态
-	cache := plugin.NewCache()
+	cache := plugin.NewDeviceCache()
 	cache.Start()
 	defer cache.Stop() // 确保停止设备缓存
 
@@ -108,7 +108,7 @@ func start() error {
 	// 这个服务会被 client/client.go 中的客户端工具调用
 	service.Start()
 
-	pluginInst := plugin.NewDevicePlugin(resourceName, cache, filepath.Clean(filepath.Join(v1beta1.DevicePluginPath, xpuSocketPath)))
+	pluginInst := plugin.NewDevicePlugin(resourceName, cache, filepath.Clean(filepath.Join(v1beta1.DevicePluginPath, xpuSockPath)))
 
 	// 检查是否有可用设备，如果没有设备则无法提供服务
 	if len(pluginInst.Devices()) == 0 {
@@ -147,13 +147,13 @@ func main() {
 	flag.StringVar(&resourceName, "resource-name", xpu.VxpuNumber, "resource name")
 	// GPU 类型配置文件：GPU 类型配置文件的绝对路径
 	flag.StringVar(&config.GPUTypeConfig, "gpu-type-config", "", "the abs path map of gpu type config file")
-	
+
 	// 解析命令行参数
 	flag.Parse()
 
 	// 启动设备插件服务
 	if err := start(); err != nil {
 		// 启动失败，记录致命错误并退出程序
-		log.FatalIn(err)
+		log.Fatalln(err)
 	}
 }

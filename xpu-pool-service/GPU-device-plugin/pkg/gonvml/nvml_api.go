@@ -8,7 +8,7 @@
 package gonvml
 
 // NvmlInterface interface
-type NvmlInterface interface {
+type nvmlInterface interface {
 	Init() NvmlRetType
 	InitWithFlags(uint32) NvmlRetType
 	Shutdown() NvmlRetType
@@ -16,17 +16,17 @@ type NvmlInterface interface {
 
 // Device define nvml device interface
 type Device interface {
-	GetDeviceInfoV2() (MemoryV2, NvmlRetType)
+	GetMemoryInfoV2() (MemoryV2, NvmlRetType)
 	GetName() (string, NvmlRetType)
-	RegisterEvents(uint64,EventSet) NvmlRetType
+	RegisterEvents(uint64, EventSet) NvmlRetType
 	GetUUID() (string, NvmlRetType)
 	GetIndex() (int, NvmlRetType)
 	GetUtilizationRates() (Utilization, NvmlRetType)
-	GetComputeRunningProcesses() ([]ProcessInfoV2, NvmlRetType)
-	DeviceGetProcessUtilization() ([]ProcessUtilizationSample, NvmlRetType)
+	GetComputeRunningProcesses() ([]ProcessInfoV1, NvmlRetType)
+	DeviceGetProcessUtilization(timestamp uint64) ([]ProcessUtilizationSample, NvmlRetType)
 	GetMultiGpuBoard() (int, NvmlRetType)
-	GetTopologyCommonAncestor(Device, GpuTopologyLevel) (Device, NvmlRetType)
-	GetTopologyNearestGpus(Device, GpuTopologyLevel) ([]Device, NvmlRetType)
+	GetTopologyCommonAncestor(Device) (GpuTopologyLevel, NvmlRetType)
+	GetTopologyNearestGpus(GpuTopologyLevel) ([]Device, NvmlRetType)
 	GetTemperature(NvmlTemperatureSensors) (uint32, NvmlRetType)
 	GetPowerUsage() (uint32, NvmlRetType)
 }
@@ -79,4 +79,7 @@ var (
 
 	// DeviceGetTopologyNearestGpus nvmlDeviceGetTopologyNearestGpus
 	DeviceGetTopologyNearestGpus = libnvml.DeviceGetTopologyNearestGpus
+
+	// DeviceGetMultiGpuBoard nvmlDeviceGetMultiGpuBoard
+	DeviceGetMultiGpuBoard = libnvml.DeviceGetMultiGpuBoard
 )

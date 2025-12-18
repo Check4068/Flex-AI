@@ -11,10 +11,11 @@ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
 package service
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -257,9 +258,9 @@ func file_api_proto_rawDescGZIP() []byte {
 
 var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_api_proto_goTypes = []interface{}{
-	(*GetPidsRequest)(nil),       // 0: service.GetPidsRequest
-	(*GetPidsResponse)(nil),      // 1: service.GetPidsResponse
-	(*GetAllVgpuInfoRequest)(nil), // 2: service.GetAllVgpuInfoRequest
+	(*GetPidsRequest)(nil),         // 0: service.GetPidsRequest
+	(*GetPidsResponse)(nil),        // 1: service.GetPidsResponse
+	(*GetAllVgpuInfoRequest)(nil),  // 2: service.GetAllVgpuInfoRequest
 	(*GetAllVgpuInfoResponse)(nil), // 3: service.GetAllVgpuInfoResponse
 }
 var file_api_proto_depIdxs = []int32{

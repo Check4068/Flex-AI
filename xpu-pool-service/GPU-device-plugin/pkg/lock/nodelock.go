@@ -14,17 +14,17 @@ import (
 	"strings"
 	"time"
 
+	"huawei.com/vxpu-device-plugin/pkg/log"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"huawei.com/vgpu-device-plugin/pkg/log"
 )
 
 const (
 	maxLockRetry        = 5
-	lockRetryInterval   = 100 * time.Millisecond
-	lockExpiredInterval = 300.0 // 设定操作容忍范围，容器内和主机的两个/proc/uptime文件实际上是指向同一个宿主主机维护的文件
+	lockRetryInterval   = 100
+	lockExpiredInterval = 300.0          // 设定操作容忍范围，容器内和主机的两个/proc/uptime文件实际上是指向同一个宿主主机维护的文件
 	uptimeFilePath      = "/proc/uptime" // 避免对设备插件重启后可能带来的时间差问题
 )
 
@@ -85,27 +85,25 @@ func setNodeLock(nodeName string, lockName string) error {
 		return err
 	}
 	newNode.ObjectMeta.Annotations[lockName] = uptime
-	err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
-	if err != nil {
-		for i := 1; i <= maxLockRetry && err != nil; i++ {
-			log.Errorf("Failed to update node time: %v, node: %s, retry: %d", err, nodeName, i)
-			time.Sleep(lockRetryInterval * time.Millisecond)
-			node, err = kubeClient.CoreV1().Nodes().Get(ctx, nodeName, v1.GetOptions{})
-			if err != nil {
-				log.Errorf("Failed to get node when retry to update: %v, node: %s", err, nodeName)
-				continue
-			}
-			newNode = node.DeepCopy()
-			uptime, err = getUptime()
-			if err != nil {
-				continue
-			}
-			newNode.ObjectMeta.Annotations[lockName] = uptime
-			err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
-		}
+	_, err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
+	for i := 1; i <= maxLockRetry && err != nil; i++ {
+		log.Errorf("Failed to update node time: %v, node: %s, retry: %d", err, nodeName, i)
+		time.Sleep(lockRetryInterval * time.Millisecond)
+		node, err = kubeClient.CoreV1().Nodes().Get(ctx, nodeName, v1.GetOptions{})
 		if err != nil {
-			return fmt.Errorf("setNodeLock exceeds retry count %d", maxLockRetry)
+			log.Errorf("Failed to get node when retry to update: %v, node: %s", err, nodeName)
+			continue
 		}
+		newNode = node.DeepCopy()
+		uptime, err = getUptime()
+		if err != nil {
+			continue
+		}
+		newNode.ObjectMeta.Annotations[lockName] = uptime
+		_, err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
+	}
+	if err != nil {
+		return fmt.Errorf("setNodeLock exceeds retry count %d", maxLockRetry)
 	}
 	log.Infof("Node lock set, node: %s", nodeName)
 	return nil
@@ -119,27 +117,25 @@ func ReleaseNodeLock(nodeName string, lockName string) error {
 		return err
 	}
 	if _, ok := node.ObjectMeta.Annotations[lockName]; !ok {
-		return fmt.Errorf("lock not set, node: %s", nodeName)
+		return nil
 	}
 	newNode := node.DeepCopy()
 	delete(newNode.ObjectMeta.Annotations, lockName)
-	err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
-	if err != nil {
-		for i := 1; i <= maxLockRetry && err != nil; i++ {
-			log.Errorf("Failed to update node time: %v, node: %s, retry: %d", err, nodeName, i)
-			time.Sleep(lockRetryInterval * time.Millisecond)
-			node, err = kubeClient.CoreV1().Nodes().Get(ctx, nodeName, v1.GetOptions{})
-			if err != nil {
-				log.Errorf("Failed to get node when retry to update: %v, node: %s", err, nodeName)
-				continue
-			}
-			newNode = node.DeepCopy()
-			delete(newNode.ObjectMeta.Annotations, lockName)
-			err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
-		}
+	_, err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
+	for i := 1; i <= maxLockRetry && err != nil; i++ {
+		log.Errorf("Failed to update node time: %v, node: %s, retry: %d", err, nodeName, i)
+		time.Sleep(lockRetryInterval * time.Millisecond)
+		node, err = kubeClient.CoreV1().Nodes().Get(ctx, nodeName, v1.GetOptions{})
 		if err != nil {
-			return fmt.Errorf("releaseNodeLock exceeds retry count %d", maxLockRetry)
+			log.Errorf("Failed to get node when retry to update: %v, node: %s", err, nodeName)
+			continue
 		}
+		newNode = node.DeepCopy()
+		delete(newNode.ObjectMeta.Annotations, lockName)
+		_, err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
+	}
+	if err != nil {
+		return fmt.Errorf("releaseNodeLock exceeds retry count %d", maxLockRetry)
 	}
 	log.Infof("Node lock released, node: %s", nodeName)
 	return nil
