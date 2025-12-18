@@ -11,16 +11,16 @@ work_lib_path=${work_path}/lib
 lib_path="/usr/lib64"
 namespace="xpu"
 cuda_path=${lib_path}/libcuda.so
-cuda_origin_path=${work_lib_path}/libcuda-original.so
+cuda_original_path=${work_lib_path}/libcuda-original.so
 deployment_name="gpupool"
 RED='\033[0;31m'
 NC='\033[0m'
 
 #获取池化组件相关pod
-pods=$(kubectl get pods -n ${namespace} | tail -n +2 | awk '{print $1}')
+pods=$(kubectl get pod -n "${namespace}" | tail -n +2 | awk '{print $1}')
 
 #卸载池化组件
-if helm list --deployed --short | grep -q "${deployment_name}"; then
+if helm list --deployed --short | grep -q ${deployment_name}; then
     helm uninstall gpupool
 else 
     echo "The helm of gpupool has been uninstalled. Next, we will clean up the remaining residues"
@@ -31,19 +31,18 @@ pod_delete_flag="true"
 echo "Wait for Pods to be deleted."
 for pod in ${pods}; do
     kubectl wait --for=delete pod/${pod} -n "${namespace}" --timeout=120s 2>/dev/null  || status=$? || true
-    if [ "${status}" -ne 0 ]; then
+    if [ ${status} -ne 0 ]; then
         echo "'${pod}' deletion timeout"
         pod_delete_flag="false"
-        break
     fi
 done
 
 #恢复libcuda.so文件
 cuda_file=$(readlink -f ${cuda_path})
-cuda_name=$(basename ${cuda_file})
+cuda_name=$(basename "${cuda_file}")
 cuda_backup_name=$(find ${work_lib_path} -name ${cuda_name}.bak )
-if [ "${cuda_backup_name}" == "" ]; then
-    echo "The corresponding cuda lib file was not found in the ${cuda_name} folder"
+if [ "${cuda_backup_name}" = "" ]; then
+    echo -e "The corresponding cuda lib file was not found in the ${work_lib_path} folder"
     exit 1
 fi
 install -m 755 ${cuda_backup_name} ${cuda_file}

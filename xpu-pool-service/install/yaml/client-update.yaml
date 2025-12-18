@@ -23,7 +23,7 @@ spec:
       hostNetwork: true
       containers:
       - name: client-update
-        image: client-update:2.0
+        image: client_update:2.0
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: opt-xpu

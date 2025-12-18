@@ -6,7 +6,7 @@ set -e
 var_log_xpu_path="/var/log/xpu"
 namespace="xpu"
 deployment_name="gpupool"
-http_arg=""
+https_arg=""
 monitor_arg=""
 
 print_help() {
@@ -16,7 +16,7 @@ print_help() {
 }
 
 while [[ "$#" -gt 0 ]]; do 
-    case "$1" in
+    case $1 in
         -c|--https)
             modify=1
             shift
@@ -26,7 +26,7 @@ while [[ "$#" -gt 0 ]]; do
             exit 0
             ;;
         *)
-            echo "未知选项: $1"
+            echo "未知参数: $1"
             print_help
             exit 1
             ;;
@@ -36,11 +36,11 @@ done
 check_dir() {
     local dir="${1}"
     if [ -e "${dir}" ]; then
-        if [ "$(stat -c %a "${dir}")" != "755" ]; then
-            chmod 755 "${dir}"
+        if [ "$(stat -c %a ${dir})" != "750" ]; then
+            chmod 750 ${dir}
         fi
     else
-        mkdir -m 750 "${dir}"
+        mkdir -m 750 -p ${dir}
     fi
 }
 
@@ -72,12 +72,12 @@ fi
 
 # 根据环境导入对应镜像
 if command -v crictl &> /dev/null && command -v ctr &> /dev/null; then
-    ctr -n=k8s.io image import ${images_path}
+    ctr -n=k8s.io i import ${images_path}
 elif command -v docker &> /dev/null; then
     docker load -i ${images_path}
-    if [ "${env}" = "gpu" ]; then
-        tar -xzvf template/gpupool-0.1.0.tgz -C templates/ > /dev/null 
-        awk '{gsub(/runtimeClassName: nvidia/, "runtimeClassName:"); print}' templates/gpu-device-plugin.yaml > temp.yaml && mv temp.yaml templates/gpupool/gpu-device-plugin.yaml
+    if [ "${env}" == "gpu" ]; then
+        tar -xzvf templates/gpupool-0.1.0.tgz -C templates/ > /dev/null 
+        awk '{gsub(/runtimeClassName: nvidia/, "runtimeClassName:"); print}' templates/gpupool/values.yaml > temp.yaml && mv temp.yaml templates/gpupool/values.yaml
         helm package templates/gpupool --destination templates/
     fi
 else
@@ -86,24 +86,24 @@ else
 fi
 
 #创建命名空间
-if ! kubectl get namespace "${namespace}" &> /dev/null 2>&1; then
+if ! kubectl get namespace "$namespace" &> /dev/null 2>&1; then
     ( kubectl create namespace "$namespace" && kubectl label namespace "$namespace" pod-security.kubernetes.io/enforce=privileged ) \
     || { echo "Failed to create k8s namespace xpu"; exit 1; }
 fi
 
 # 设置安装参数
 function set_args() {
-    if [ "${modify}" = "1" ]; then
-        http_arg="--set xpuExporter.https='"on"'"
+    if [ "$modify" = "1" ]; then
+        https_arg="--set xpuExporter.https='"on"'"
     fi
-    if kubectl get crds | grep servicemonitor.monitoring.coreos.com &> /dev/null; then
+    if kubectl get crds | grep servicemonitors.monitoring.coreos.com > /dev/null; then
         monitor_arg="--set ServiceMonitor.enable="true""
     fi
 }
 
 # 安装部署
 set_args
-helm upgrade --install gpupool ./templates/gpupool-0.1.0.tgz ${http_arg} ${monitor_arg} --wait
+helm upgrade --install gpupool ./templates/gpupool-0.1.0.tgz ${https_arg} ${monitor_arg} --wait
 
 # 检查是否部署gpupool
 if ! helm list | grep ${deployment_name} > /dev/null; then
@@ -112,7 +112,7 @@ if ! helm list | grep ${deployment_name} > /dev/null; then
 fi
 
 # 获取gpupool的状态并检查是否为deployed
-release_status=$(helm status "${deployment_name}" | grep "STATUS" | awk '{print $2}')
+release_status=$(helm status "${deployment_name}" | grep STATUS | awk '{print $2}')
 if [[ $release_status = "deployed" ]]; then
     echo "Release '${deployment_name}' installed successfully"
 else
@@ -124,7 +124,7 @@ fi
 pads_name=$(kubectl get pod -n "${namespace}" | tail -n +2 | awk '{print $1}')
 for pod in ${pads_name}; do
     kubectl wait --for=condition=Ready pod/${pod} -n "${namespace}" --timeout=60s
-    if [[ $? -ne 0 ]]; then
+    if [ $? -ne 0 ]; then
         echo "XPU pooling software have some pods that are not in Ready state"
         exit 1
     fi

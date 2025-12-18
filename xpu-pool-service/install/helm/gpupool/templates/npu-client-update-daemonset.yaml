@@ -12,7 +12,7 @@ spec:
       name: {{ .Values.npuClientUpdate.name }}
   {{- with .Values.updateStrategy }}
   updateStrategy:
-    {{- toYaml . | indent 4 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   template:
     metadata:
@@ -23,7 +23,7 @@ spec:
     spec:
       {{- with .Values.npu.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | indent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
@@ -32,23 +32,23 @@ spec:
       - name: {{ .Values.npuClientUpdate.name }}
         image: {{ .Values.basic.swr_addr }}/{{ .Values.npuClientUpdate.image.name }}:{{ .Values.npuClientUpdate.image.version }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
-        {{- with .Values.clientupdateSecurityContext }}
+        {{- with .Values.clientUpdateSecurityContext }}
         securityContext:
-          {{- toYaml . | indent 10 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .Values.flavor.npu_client_update_daemonset }}
         resources:
-          {{- toYaml . | indent 10 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         volumeMounts:
-        - name: opt-npu
-          mountPath: /opt/npu
+        - name: opt-xpu
+          mountPath: /opt/xpu
         - name: ascend
           mountPath: /usr/local/Ascend
       volumes:
-      - name: opt-npu
+      - name: opt-xpu
         hostPath:
-          path: /opt/npu
+          path: /opt/xpu
       - name: ascend
         hostPath:
           path: /usr/local/Ascend

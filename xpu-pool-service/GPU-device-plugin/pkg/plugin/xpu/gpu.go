@@ -35,7 +35,7 @@ const (
 	// VxpuCore vxpu core resource name
 	VxpuCore = "huawei.com/vxpu-cores"
 	// VxpuMemory vxpu memory resource name
-	VxpuMemory 						= "huawei.com/vxpu-memory-1Gi"
+	VxpuMemory 						= "huawei.com/vxpu-memory.1Gi"
 	microSecond 					= 1000 * 1000
 	milliwatts 						= 1000
 	eventWaitTimeout 				= 5000

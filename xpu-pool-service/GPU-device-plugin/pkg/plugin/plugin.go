@@ -145,14 +145,11 @@ func (m *DevicePlugin) serve() error {
 			// restart if it has not been too often
 			// i.e. if server has crashed more than 5 times and it didn't last more than one hour each time
 			if restartCount > grpcServeTryCount {
-				// quit
 				log.Fatalf("GRPC server for '%s' has repeatedly crashed recently. Quitting", m.resourceName)
 			}
 			timeSinceLastCrash := time.Since(lastCrashTime).Seconds()
 			lastCrashTime = time.Now()
 			if timeSinceLastCrash > secondsPerHour {
-				// it has been one hour since the last crash... reset the count
-				// to reflect on the frequency
 				restartCount = 1
 			} else {
 				restartCount++

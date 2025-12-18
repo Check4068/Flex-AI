@@ -13,4 +13,4 @@ spec:
   - name: {{ .Values.xpuExporter.name }}-port
     protocol: TCP
     port: {{ .Values.xpuExporter.port }}
-    targetPort: 8882
+    targetPort: 8082

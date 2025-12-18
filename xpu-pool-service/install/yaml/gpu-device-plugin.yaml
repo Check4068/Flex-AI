@@ -10,6 +10,16 @@ rules:
     resources:
       - nodes
     verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+    apiGroups:
+      - ""
+    resources:
+      - nodes/status
+    verbs:
       - patch
   - apiGroups:
       - ""
@@ -77,14 +87,14 @@ spec:
         hostNetwork: true
         containers:
           - env:
-            - name: NODE_Name
+            - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: NVIDIA_VISIBLE_DEVICES
               value: "all"
             image: gpu-device-plugin:v1.0.0
-            args: ["--device-split-count=20","--logging-console=true"]
+            args: ["--device-split-count=20", "--logging-console=true"]
             name: gpu-device-plugin
             volumeMounts:
               - name: device-plugin

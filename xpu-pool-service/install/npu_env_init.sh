@@ -4,4 +4,4 @@
 set -e
 
 host_name=$(hostname)
-kubectl label node ${host_name} huawei.com/vgpu=ready
+kubectl label node ${host_name} huawei.com/vnpu=ready

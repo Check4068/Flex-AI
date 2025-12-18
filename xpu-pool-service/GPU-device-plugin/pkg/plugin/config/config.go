@@ -12,7 +12,7 @@ var (
 	NodeName string
 	// LogDir log storage directory
 	LogDir string
-	// GPUTypeConfig the absolute path of gpu type config file
+	// GPUTypeConfig The absolute path of gpu type config file
 	GPUTypeConfig string
 	// GPUTypeMap mapping between gpu types and abbreviations
 	GPUTypeMap map[string]string

@@ -29,11 +29,12 @@ import (
 
 const (
 	DeviceLength               = 7
-	// PodAnnotationMaxLength annotation max data length 2MB
+	// PodAnnotationMaxLength pod annotation max data length 2MB
 	PodAnnotationMaxLength     = 1024 * 1024
+	// BaseDec base size
 	BaseDec                    = 10
+	// BitsSize base size
 	BitsSize                   = 64
-	// BitSize base size
 )
 
 func init() {
@@ -124,7 +125,7 @@ func EncodeNodeDevices(dlist []*types.DeviceInfo) string {
 	return encodedNodeDevices.String()
 }
 
-// EncodeContainerDevices encode xpu resource request of a container to string
+// EncodeContainerDevices encode vxpu resource request of a container to string
 func EncodeContainerDevices(cd types.ContainerDevices) string {
 	var encodedContainerDevices strings.Builder
 	for _, val := range cd {

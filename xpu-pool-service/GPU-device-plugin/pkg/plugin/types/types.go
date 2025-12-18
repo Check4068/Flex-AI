@@ -38,7 +38,7 @@ type ContainerDevices []ContainerDevice
 // PodDevices description of all vxpus in the pod
 type PodDevices []ContainerDevices
 
-// DeviceInfo description of xpu registered in the node annotion
+// DeviceInfo description of xpu registered in the node annotation
 type DeviceInfo struct {
 	Index  int32  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
 	Id     string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`

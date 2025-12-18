@@ -261,6 +261,7 @@ func GetXPUUsage() (types.DeviceUsageInfo, map[uint32]*types.ProcessUsage, error
 // npuTopologyProvider is a topology provider implementation.
 type npuTopologyProvider struct{}
 
+// ensure npuTopologyProvider implements the graph.TopologyProvider interface
 var _ graph.TopologyProvider = (*npuTopologyProvider)(nil)
 
 // NewTopologyProvider creates an TopologyProvider instance.

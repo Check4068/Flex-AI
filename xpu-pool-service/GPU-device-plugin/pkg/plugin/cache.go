@@ -32,7 +32,7 @@ func NewDeviceCache() *DeviceCache {
 	}
 }
 
-// AddNotifyChannel add notify channel for unhealthy and stop event
+// AddNotifyChannel add notify channel for unhealthy or stop event
 func (d *DeviceCache) AddNotifyChannel(name string, ch chan *xpu.Device) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
