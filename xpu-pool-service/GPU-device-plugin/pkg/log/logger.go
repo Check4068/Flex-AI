@@ -16,19 +16,18 @@ import (
 )
 
 var (
-	logger           = logrus.New()
-	loggingConsole   = flag.Bool("logging-console", false, "enable log output, default false")
-	logLevel         = flag.String("log-level", "info", "Set logging level (debug, info, warning, fatal)")
-	logFileName      = flag.String("log-file", "vgpu-device-plugin.log", "Set the log file name")
-	maxSize          = flag.Int("max-size", defaultMaxSize, "maximum length of a log (MB)")
-	maxBackups       = flag.Int("max-backups", defaultMaxBackups, "maximum number of log files")
-	maxAge           = flag.Int("max-age", defaultMaxAge, "maximum storage duration, in days")
+	logger         = logrus.New()
+	loggingConsole = flag.Bool("logging-console", false, "enable log output, default false")
+	logLevel       = flag.String("log-level", "info", "Set logging level (debug, info, warning, fatal)")
+	maxSize        = flag.Int("max-size", defaultMaxSize, "maximum length of a log (MB)")
+	maxBackups     = flag.Int("max-backups", defaultMaxBackups, "maximum number of log files")
+	maxAge         = flag.Int("max-age", defaultMaxAge, "maximum storage duration, in days")
 )
 
 const (
 	defaultMaxSize    = 20
-	defaultMaxBackups = 100
-	defaultMaxAge     = 24
+	defaultMaxBackups = 10
+	defaultMaxAge     = 30
 	timestampFormat   = "2006-01-02 15:04:05.000"
 )
 
@@ -44,16 +43,16 @@ func checkLoggerParamValid() error {
 
 // InitLogging configures logging. Logs are written to a log file or stdout/stderr.
 // Since logrus doesn't support multiple writers, each log stream is implemented as a hook.
-func InitLogging() error {
+func InitLogging(logName string) error {
 	if err := checkLoggerParamValid(); err != nil {
-		Fatal(err)
+		Fatalln(err)
 	}
 
 	logFileOutput := &FileLogger{
-		filename:  *logFileName,
-		maxSize:   *maxSize,
+		fileName:   logName,
+		maxSize:    *maxSize,
 		maxBackups: *maxBackups,
-		maxAge:    *maxAge,
+		maxAge:     *maxAge,
 	}
 	logger.SetOutput(logFileOutput)
 
@@ -91,7 +90,7 @@ func parseLogLevel() (logrus.Level, error) {
 	case "fatal":
 		return logrus.FatalLevel, nil
 	default:
-		return logrus.FatalLevel, fmt.Errorf("invalid logging level [%v]", *logLevel)
+		return logrus.FatalLevel, fmt.Errorf("invalid logging level [%v]", logLevel)
 	}
 }
 
@@ -105,24 +104,24 @@ var _ logrus.Formatter = &PlainTextFormatter{}
 
 // Format ensures formatted logging output
 func (f *PlainTextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	b := bytes.Buffer{}
-	if entry.Buffer != nil {
-		b = *entry.Buffer
+	b := entry.Buffer
+	if entry.Buffer == nil {
+		b = &bytes.Buffer{}
 	}
 
-	if _, err := fmt.Fprintf(&b, "%s %d ", entry.Time.Format(f.TimestampFormat), f.pid); err != nil {
+	if _, err := fmt.Fprintf(b, "%s %d ", entry.Time.Format(f.TimestampFormat), f.pid); err != nil {
 		return nil, err
 	}
 
 	if len(entry.Data) != 0 {
 		for key, value := range entry.Data {
-			if _, err := fmt.Fprintf(&b, "[%s:%v] ", key, value); err != nil {
+			if _, err := fmt.Fprintf(b, "[%s:%v] ", key, value); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	if _, err := fmt.Fprintf(&b, "%s %s\n", getLogLevel(entry.Level), entry.Message); err != nil {
+	if _, err := fmt.Fprintf(b, "%s %s\n", getLogLevel(entry.Level), entry.Message); err != nil {
 		return nil, err
 	}
 	return b.Bytes(), nil
@@ -194,11 +193,6 @@ func Fatalf(format string, args ...interface{}) {
 // Fatalln ensures output of Fatalln logs
 func Fatalln(args ...interface{}) {
 	logger.Fatalln(args...)
-}
-
-// Panicf Prints Panic messages for panic
-func Panicf(format string, args ...interface{}) {
-	logger.Panicf(format, args...)
 }
 
 // Panicln Prints Panic messages for panic

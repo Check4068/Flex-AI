@@ -15,8 +15,8 @@ const (
 	versionShift = 24 // The shift count to move the version into the high bytes of the result.
 )
 
-func structVersion(Data interface{}, version uint32) uint32 {
-	return uint32(reflect.Indirect(reflect.ValueOf(Data)).Type().Size()) | (version << uint32(versionShift))
+func structVersion(data interface{}, version uint32) uint32 {
+	return uint32(reflect.Indirect(reflect.ValueOf(data)).Type().Size()) | (version << uint32(versionShift))
 }
 
 func clen(n []byte) int {

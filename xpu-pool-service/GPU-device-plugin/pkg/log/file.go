@@ -20,13 +20,13 @@ import (
 )
 
 const (
-	backupTimeFormat        = "20060102150405.000"
-	compressSuffix          = ".gz"
-	defaultLogSuffix        = ".var.log"
-	defaultMaxAge           = 24
-	defaultMaxSize          = 20
-	fileModeUserRwxForArchivlog = 0640
-	fileModeUserRwxForWritinglog = 0640
+	backupTimeFormat  = "20060102150405.000"
+	compressSuffix    = ".gz"
+	defaultLogPath    = "/var/log"
+	defaultLogMaxSize = 20
+
+	fileModeUserRoForArchiveLog = 0440
+	fileModeUserRwForWritingLog = 0640
 	dirModeUserRwxForLogDir     = 0750
 	hourPerDay                  = 24
 )
@@ -44,7 +44,7 @@ var _ io.WriteCloser = (*FileLogger)(nil)
 // Avoid entering this state.
 type FileLogger struct {
 	// Filename is the file to write logs to.
-	filename string
+	fileName string
 
 	// maximum size of a log file, in MB.
 	maxSize int
@@ -66,13 +66,16 @@ type FileLogger struct {
 
 	mutex sync.Mutex
 
-	statelogStaling chan bool
+	staleLogCh          chan bool
 	startHandleStaleLog sync.Once
 }
 
 // variable so tests can mock it out and not need to write megabytes of data
 // to disk.
-var megabyte = 1024 * 1024
+var (
+	currentTime = time.Now
+	megabyte    = 1024 * 1024
+)
 
 // Write implements io.Writer.
 func (l *FileLogger) Write(bytes []byte) (int, error) {
@@ -148,25 +151,26 @@ func (l *FileLogger) openNew() error {
 	}
 
 	name := l.filename()
+	info, err := os.Stat(name)
+	if err != nil {
+		if _, err := os.Stat(name); err == nil {
+			if err := os.Rename(name, backupName(name, l.localTime)); err != nil {
+				return fmt.Errorf("can't rename log file: %s", err)
+			}
+			// The permission on archive log files must be 0640
+			if err := os.Chmod(backupName(name, l.localTime), os.FileMode(fileModeUserRoForArchiveLog)); err != nil {
+				return fmt.Errorf("error changing permissions: %s", err)
+			}
+		}
+		if err := createAndChown(name, info); err != nil {
+			return err
+		}
+	}
 	// Rename and archive the log file and create a new log file.
-	if _, err := os.Stat(name); err == nil {
-		if err := os.Rename(name, backupName(name, l.localTime)); err != nil {
-			return fmt.Errorf("can't rename log file: %s", err)
-		}
-		// The permission on archive log files must be 0640
-		if err := os.Chmod(backupName(name, l.localTime), os.FileMode(fileModeUserRwxForArchivlog)); err != nil {
-			return fmt.Errorf("error changing permissions: %s", err)
-		}
-	}
-
-	if err := createAndChown(name, info); err != nil {
-		return err
-	}
-
 	// we use truncate here because this should only get called when we've moved
 	// the file ourselves. if someone else creates the file in the meantime,
 	// just wipe out the contents.
-	f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(fileModeUserRwxForWritinglog))
+	f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(fileModeUserRwForWritingLog))
 	if err != nil {
 		return fmt.Errorf("can't open new logfile: %s", err)
 	}
@@ -211,7 +215,7 @@ func (l *FileLogger) openExistingOrNew(writeLen int) error {
 		return l.rotate()
 	}
 
-	file, err := os.OpenFile(l.fileName, os.O_APPEND|os.O_WRONLY, os.FileMode(fileModeUserRwxForWritinglog))
+	file, err := os.OpenFile(l.fileName, os.O_APPEND|os.O_WRONLY, os.FileMode(fileModeUserRwForWritingLog))
 	if err != nil {
 		// if we fail to open the old log file for some reason, just ignore
 		// it and open a new log file.
@@ -224,14 +228,16 @@ func (l *FileLogger) openExistingOrNew(writeLen int) error {
 
 // Filename generates path-safe log file names
 func (l *FileLogger) filename() string {
-	if l.isAbsolute(l.filename) {
-		return l.filename
+	l.fileName = filepath.Clean(l.fileName)
+	isAbsolute := filepath.IsAbs(l.fileName)
+	if !isAbsolute {
+		l.fileName = filepath.Join(defaultLogPath, filepath.Base(l.fileName))
 	}
-	return filepath.Join(defaultLogPath, filepath.Base(l.filename))
+	return l.fileName
 }
 
 // handleStaleLogRun performs compression and removal of stale log files.
-func (l *FileLogger) handleStaleLogRun() error {
+func (l *FileLogger) handleStaleLogRunOnce() error {
 	if l.maxBackups == 0 && l.maxAge == 0 {
 		return nil
 	}
@@ -265,15 +271,15 @@ func (l *FileLogger) handleStaleLogRun() error {
 
 	// Remove files toRemove
 	for _, f := range toRemove {
-		if err := os.Remove(filepath.Join(l.dir(), f.Name())); errRemove != nil {
-			return errRemove
+		if err := os.Remove(filepath.Join(l.dir(), f.Name())); err != nil {
+			return err
 		}
 	}
 
 	// Compress files toCompress
 	for _, f := range toCompress {
 		fn := filepath.Join(l.dir(), f.Name())
-		if errCompress := compressLogFile(fn, f.Name()+compressSuffix); errCompress != nil {
+		if errCompress := compressLogFile(fn, fn+compressSuffix); errCompress != nil {
 			return errCompress
 		}
 	}
@@ -282,35 +288,20 @@ func (l *FileLogger) handleStaleLogRun() error {
 
 // handleStaleLogRun runs in a goroutine to manage post-rotation compression and removal of stale log files.
 func (l *FileLogger) handleStaleLogRun() {
-	l.startHandleStaleLog.Do(func() {
-		l.statelogStaling = make(chan bool, 1)
-		go func() {
-			for range l.statelogStaling {
-				if err := l.handleStaleLogRun(); err != nil {
-					log.Errorf("handle stale log err: %v", err)
-				}
-			}
-		}()
-	})
-	select {
-	case l.statelogStaling <- true:
-	default:
+	for range l.staleLogCh {
+		if err := l.handleStaleLogRunOnce(); err != nil {
+			fmt.Errorf("handle stale log err: %v", err)
+		}
 	}
 }
 
 func (l *FileLogger) postRotateCompressLog() {
 	l.startHandleStaleLog.Do(func() {
-		l.statelogStaling = make(chan bool, 1)
-		go func() {
-			for range l.statelogStaling {
-				if err := l.handleStaleLogRun(); err != nil {
-					log.Errorf("handle stale log err: %v", err)
-				}
-			}
-		}()
+		l.staleLogCh = make(chan bool, 1)
+		go l.handleStaleLogRun()
 	})
 	select {
-	case l.statelogStaling <- true:
+	case l.staleLogCh <- true:
 	default:
 	}
 }
@@ -328,26 +319,20 @@ func (l *FileLogger) oldLogFiles() ([]logInfo, error) {
 	var logFiles []logInfo
 	prefix, ext := l.getLogFilePrefixAndExt()
 	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
-		if !l.matchLogFile(f.Name(), prefix, ext) {
-			continue
-		}
-		t, err := l.extractTimeFromFilename(f.Name(), prefix, ext, compressedSuffix); err != nil {
-			continue
-		}
-		if t, err := l.extractTimeFromFilename(f.Name(), prefix, ext, compressedSuffix); err != nil {
-			continue
-		}
 		fileInfo, err := f.Info()
-		if err != nil {
+		if fileInfo.IsDir() {
 			continue
 		}
-		logFiles = append(logFiles, logInfo{timestamp: t, fileInfo: fileInfo})
+		if t, err := l.extractTimeFromFileName(f.Name(), prefix, ext); err == nil {
+			logFiles = append(logFiles, logInfo{t, fileInfo})
+			continue
+		}
+		if t, err := l.extractTimeFromFileName(f.Name(), prefix, ext+compressSuffix); err == nil {
+			logFiles = append(logFiles, logInfo{t, fileInfo})
+			continue
+		}
 	}
-
-	sort.Sort(logInfoByTime(logFiles))
+	sort.Sort(logInfoWithTimestamp(logFiles))
 	return logFiles, nil
 }
 
@@ -362,7 +347,7 @@ func (l *FileLogger) extractTimeFromFileName(filename, prefix, ext string) (time
 	if !strings.HasSuffix(filename, ext) {
 		return time.Time{}, errors.New("mismatched extension")
 	}
-	ts := filename[len(prefix): len(filename)-len(ext)]
+	ts := filename[len(prefix) : len(filename)-len(ext)]
 	return time.Parse(backupTimeFormat, ts)
 }
 
@@ -383,7 +368,7 @@ func (l *FileLogger) dir() string {
 func (l *FileLogger) getLogFilePrefixAndExt() (prefix, ext string) {
 	filename := l.filename()
 	ext = filepath.Ext(filename)
-	prefix = filename[: len(filename)-len(ext)] + "-"
+	prefix = filename[:len(filename)-len(ext)] + "-"
 	return prefix, ext
 }
 
@@ -409,7 +394,7 @@ func createAndChown(name string, info os.FileInfo) error {
 }
 
 // compressLogFile compresses the given log file and removing src log file if successful.
-func compressLogFile(src string) error {
+func compressLogFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("open log file failed: %v", err)
@@ -421,7 +406,7 @@ func compressLogFile(src string) error {
 		return fmt.Errorf("stat log file failed: %v", err)
 	}
 
-	dst := src + compressSuffix
+	dst = src + compressSuffix
 	if err := createAndChown(dst, srcFileInfo); err != nil {
 		return fmt.Errorf("create compressed log file failed: %v", err)
 	}

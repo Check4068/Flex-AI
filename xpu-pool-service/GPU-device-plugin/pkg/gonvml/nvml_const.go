@@ -16,13 +16,13 @@ type MemoryErrorType int32
 // The letter case of the constant name is the same as that in nvml.h.
 const (
 	// EventypexidCriticalError as defined in nvml/nvml.h
-	EventypexidCriticalError = 8
+	EvenTypeXidCriticalError = 8
 
 	// DeviceNameV2BufferSize as defined in nvml/nvml.h
 	DeviceNameV2BufferSize = 96
 
 	// DeviceUUIDBufferSize as defined in nvml/nvml.h
-	DeviceUUIDBufferSize = 80
+	DeviceUUIDV2BufferSize = 96
 
 	// SystemDriverVersionBufferSize as defined in nvml/nvml.h
 	SystemDriverVersionBufferSize = 88
@@ -36,6 +36,7 @@ const (
 	ErrorNotSupported
 	ErrorNoPermission
 	ErrorAlreadyInitialized
+	ErrorNotFound
 	ErrorInsufficientSize
 	ErrorInsufficientPower
 	ErrorDriverNotLoaded
@@ -48,7 +49,7 @@ const (
 	ErrorResetRequired
 	ErrorOperatingSystem
 	ErrorLibRMVersionMismatch
-	ErrorUnknown
+	ErrorInsue
 	ErrorInvalidState
 	ErrorArchMismatch
 	ErrorGpuNotSupported
@@ -63,10 +64,12 @@ type GpuTopologyLevel int32
 
 // GpuTopologyLevel enumeration from nvml/nvml.h
 const (
-	TopologyInternal GpuTopologyLevel = iota
-	TopologyMultiGPU
-	TopologyHostBridge
-	TopologySystem
+	TopologyInternal   GpuTopologyLevel = iota
+	TopologySingle     GpuTopologyLevel = 10
+	TopologyMultiple   GpuTopologyLevel = 20
+	TopologyHostBridge GpuTopologyLevel = 30
+	TopologyNode       GpuTopologyLevel = 40
+	TopologySystem     GpuTopologyLevel = 50
 )
 
 type NvmlTemperatureSensors int32

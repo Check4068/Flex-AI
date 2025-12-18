@@ -8,16 +8,16 @@ package gonvml
 
 // EventData nvml EventData struct
 type EventData struct {
-	Device             Device
-	EventType          uint64
-	EventData          uint64
-	GpuInstanceId      uint32
-	ComputeInstanceId  uint32
+	Device            Device
+	EventType         uint64
+	EventData         uint64
+	GpuInstanceId     uint32
+	ComputeInstanceId uint32
 }
 
 func (e EventData) convert() nvmlEventData {
 	out := nvmlEventData{
-		Device:            e.Device.(NvmlDevice),
+		Device:            e.Device.(nvmlDevice),
 		EventType:         e.EventType,
 		EventData:         e.EventData,
 		GpuInstanceId:     e.GpuInstanceId,
@@ -27,11 +27,11 @@ func (e EventData) convert() nvmlEventData {
 }
 
 type nvmlEventData struct {
-	Device             NvmlDevice
-	EventType          uint64
-	EventData          uint64
-	GpuInstanceId      uint32
-	ComputeInstanceId  uint32
+	Device            nvmlDevice
+	EventType         uint64
+	EventData         uint64
+	GpuInstanceId     uint32
+	ComputeInstanceId uint32
 }
 
 func (e nvmlEventData) convert() EventData {

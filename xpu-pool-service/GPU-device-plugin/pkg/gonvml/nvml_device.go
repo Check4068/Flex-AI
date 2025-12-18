@@ -15,87 +15,91 @@ const deviceGetMemInfoVersion = 2
 
 var pidMaxSize uint32 = 1024
 
-func (device NvmlDevice) GetMemoryInfoV2() (MemoryV2, NvmlRetType) {
+func (device nvmlDevice) GetMemoryInfoV2() (MemoryV2, NvmlRetType) {
 	var memory MemoryV2
 	memory.Version = structVersion(memory, deviceGetMemInfoVersion)
 	ret := nvmlDeviceGetMemoryInfoWrapper(device, &memory)
 	return memory, ret
 }
 
-func (device NvmlDevice) GetName() (string, NvmlRetType) {
+func (device nvmlDevice) GetName() (string, NvmlRetType) {
 	name := make([]byte, DeviceNameV2BufferSize)
-	ret := libnvml.DeviceGetNameV2(device, name[:], DeviceNameV2BufferSize)
+	ret := nvmlDeviceGetNameWrapper(device, &name[0], DeviceNameV2BufferSize)
 	return string(name[:clen(name)]), ret
 }
 
-func (device NvmlDevice) RegisterEvent(eventTypes uint64, set EventSet) NvmlRetType {
-	return libnvml.DeviceRegisterEventWrapper(device, eventTypes, set.(*nvmlEventSet))
+func (device nvmlDevice) RegisterEvent(eventTypes uint64, set EventSet) NvmlRetType {
+	return nvmlDeviceRegisterEventsWrapper(device, eventTypes, set.(nvmlEventSet))
 }
 
-func (device NvmlDevice) GetUUID() (string, NvmlRetType) {
-	uuid := make([]byte, DeviceUUIDBufferSize)
-	ret := libnvml.DeviceGetUUIDWrapper(device, uuid[:], DeviceUUIDBufferSize)
+func (device nvmlDevice) GetUUID() (string, NvmlRetType) {
+	uuid := make([]byte, DeviceUUIDV2BufferSize)
+	ret := nvmlDeviceGetUUIDWrapper(device, &uuid[0], DeviceUUIDV2BufferSize)
 	return string(uuid[:clen(uuid)]), ret
 }
 
-func (device NvmlDevice) GetIndex() (int, NvmlRetType) {
+func (device nvmlDevice) GetIndex() (int, NvmlRetType) {
 	var index uint32
-	ret := libnvml.DeviceGetIndexWrapper(device, &index)
+	ret := nvmlDeviceGetIndexWrapper(device, &index)
 	return int(index), ret
 }
 
-func (device NvmlDevice) GetUtilizationRates() (Utilization, NvmlRetType) {
+func (device nvmlDevice) GetUtilizationRates() (Utilization, NvmlRetType) {
 	var utilization Utilization
-	ret := libnvml.DeviceGetUtilizationRatesWrapper(device, utilization)
+	ret := nvmlDeviceGetUtilizationRatesWrapper(device, &utilization)
 	return utilization, ret
 }
 
-func (device NvmlDevice) GetComputeRunningProcesses() ([]ProcessInfoV2, NvmlRetType) {
-	var infoSize uint32 = pidMaxSize
-	var infos = make([]ProcessInfoV2, infoSize)
-	ret := libnvml.DeviceGetComputeRunningProcessesWrapper(device, &infoSize, infos[:])
+func (device nvmlDevice) GetComputeRunningProcesses() ([]ProcessInfoV1, NvmlRetType) {
+	var infoSize = pidMaxSize
+	var infos = make([]ProcessInfoV1, infoSize)
+	ret := nvmlDeviceGetComputeRunningProcessesWrapper(device, &infoSize, &infos[0])
 	return infos, ret
 }
 
-func (device NvmlDevice) GetProcessUtilization(timestamp uint64) ([]ProcessUtilizationSample, NvmlRetType) {
-	var sampleSize uint32 = pidMaxSize
+func (device nvmlDevice) GetProcessUtilization(timestamp uint64) ([]ProcessUtilizationSample, NvmlRetType) {
+	var sampleSize = pidMaxSize
 	var samples = make([]ProcessUtilizationSample, sampleSize)
-	ret := libnvml.DeviceGetProcessUtilizationWrapper(device, samples[:], sampleSize, timestamp)
+	ret := nvmlDeviceGetProcessUtilizationWrapper(device, &samples[0], &sampleSize, timestamp)
 	return samples, ret
 }
 
-func (device NvmlDevice) GetMultiGpuBoard() (int, NvmlRetType) {
+func (device nvmlDevice) GetMultiGpuBoard() (int, NvmlRetType) {
 	var multiGpuBoard uint32
-	ret := libnvml.DeviceGetMultiGpuBoardWrapper(device, &multiGpuBoard)
+	ret := nvmlDeviceGetMultiGpuBoardWrapper(device, &multiGpuBoard)
 	return int(multiGpuBoard), ret
 }
 
-func (device1 NvmlDevice) GetTopologyCommonAncestor(device2 Device, level GpuTopologyLevel) (Device, NvmlRetType) {
-	var pathInfo Device
-	ret := libnvml.DeviceGetTopologyCommonAncestorWrapper(device1, hwDeviceHandle(device2), &pathInfo)
+func (device1 nvmlDevice) GetTopologyCommonAncestor(device2 Device) (GpuTopologyLevel, NvmlRetType) {
+	var pathInfo GpuTopologyLevel
+	ret := nvmlDeviceGetTopologyCommonAncestorWrapper(device1, nvmlDeviceHandle(device2), &pathInfo)
 	return pathInfo, ret
 }
 
-func nvmlDeviceHandle(device Device) NvmlDevice {
-	var helper func(val reflect.Value) NvmlDevice
-	helper = func(val reflect.Value) NvmlDevice {
+func nvmlDeviceHandle(d Device) nvmlDevice {
+	var helper func(val reflect.Value) nvmlDevice
+	helper = func(val reflect.Value) nvmlDevice {
 		if val.Kind() == reflect.Interface {
 			val = val.Elem()
 		}
+
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
 		}
-		if val.Type() == reflect.TypeOf(NvmlDevice{}) {
-			return val.Interface().(NvmlDevice)
+
+		if val.Type() == reflect.TypeOf(nvmlDevice{}) {
+			return val.Interface().(nvmlDevice)
 		}
+
 		if val.Kind() != reflect.Struct {
-			panic(fmt.Errorf("unable to convert non-struct type %v to NvmlDevice", val.Kind()))
+			panic("unexpected type")
 		}
+
 		for i := 0; i < val.Type().NumField(); i++ {
-			if val.Field(i).Anonymous {
+			if !val.Type().Field(i).Anonymous {
 				continue
 			}
-			if !val.Field(i).Type().Implements(reflect.TypeOf((*Device)(nil)).Elem()) {
+			if val.Field(i).Type().Implements(reflect.TypeOf((*Device)(nil)).Elem()) {
 				continue
 			}
 			return helper(val.Field(i))
@@ -105,28 +109,28 @@ func nvmlDeviceHandle(device Device) NvmlDevice {
 	return helper(reflect.ValueOf(d))
 }
 
-func (device NvmlDevice) GetTopologyNearestGpus(level GpuTopologyLevel) ([]Device, NvmlRetType) {
+func (device nvmlDevice) GetTopologyNearestGpus(level GpuTopologyLevel) ([]Device, NvmlRetType) {
 	var count uint32
-	ret := libnvml.DeviceGetTopologyNearestGpusWrapper(device, level, &count, nil)
+	ret := nvmlDeviceGetTopologyNearestGpusWrapper(device, level, &count, nil)
 	if ret != Success {
 		return []Device{}, ret
 	}
 	if count == 0 {
 		return []Device{}, ret
 	}
-	deviceArray := make([]NvmlDevice, count)
-	ret = libnvml.DeviceGetTopologyNearestGpusWrapper(device, level, &count, &deviceArray[0])
-	return convertDevices(deviceArray), ret
+	deviceArray := make([]nvmlDevice, count)
+	ret = nvmlDeviceGetTopologyNearestGpusWrapper(device, level, &count, &deviceArray[0])
+	return convertSlice[nvmlDevice, Device](deviceArray), ret
 }
 
-func (device NvmlDevice) GetTemperature(temperatureGpu NvmlTemperatureSensors) (uint32, NvmlRetType) {
+func (device nvmlDevice) GetTemperature(temperatureGpu NvmlTemperatureSensors) (uint32, NvmlRetType) {
 	var temp uint32
-	ret := libnvml.DeviceGetTemperatureWrapper(device, temperatureGpu, &temp)
+	ret := nvmlDeviceGetTemperatureWrapper(device, temperatureGpu, &temp)
 	return temp, ret
 }
 
-func (device NvmlDevice) GetPowerUsage() (uint32, NvmlRetType) {
+func (device nvmlDevice) GetPowerUsage() (uint32, NvmlRetType) {
 	var power uint32
-	ret := libnvml.DeviceGetPowerUsageWrapper(device, &power)
+	ret := nvmlDeviceGetPowerUsageWrapper(device, &power)
 	return power, ret
 }
