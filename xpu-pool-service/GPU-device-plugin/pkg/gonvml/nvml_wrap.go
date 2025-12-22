@@ -44,31 +44,31 @@ typedef nvmlReturn_t (*NvmlSystemGetCudaDriverVersionFunc)(int *cudaDriverVersio
 typedef nvmlReturn_t (*NvmlDeviceGetTemperatureFunc)(nvmlDevice_t device, nvmlTemperatureSensors_t sensorType, unsigned int *temp);
 typedef nvmlReturn_t (*NvmlDeviceGetPowerUsageFunc)(nvmlDevice_t device, unsigned int *power);
 
-NvmlInitFunc nvmlInitFunc = NULL
-NvmlInitWithFlagsFunc nvmlInitWithFlagsFunc = NULL
-NvmlShutdownFunc nvmlShutdownFunc = NULL
-NvmlErrorStringFunc nvmlErrorStringFunc = NULL
-NvmlDeviceGetCountFunc nvmlDeviceGetCountFunc = NULL
-NvmlDeviceGetHandleByIndexFunc nvmlDeviceGetHandleByIndexFunc = NULL
-NvmlDeviceGetHandleByUUIDFunc nvmlDeviceGetHandleByUUIDFunc = NULL
-NvmlDeviceGetMemoryInfoV2Func nvmlDeviceGetMemoryInfoV2Func = NULL
-NvmlDeviceGetNameFunc nvmlDeviceGetNameFunc = NULL
-NvmlDeviceGetUUIDFunc nvmlDeviceGetUUIDFunc = NULL
-NvmlDeviceGetIndexFunc nvmlDeviceGetIndexFunc = NULL
-NvmlRegisterEventsFunc nvmlRegisterEventsFunc = NULL
-NvmlEventSetCreateFunc nvmlEventSetCreateFunc = NULL
-NvmlEventSetWaitFunc nvmlEventSetWaitFunc = NULL
-NvmlEventSetFreeFunc nvmlEventSetFreeFunc = NULL
-NvmlDeviceGetUtilizationRatesFunc nvmlDeviceGetUtilizationRatesFunc = NULL
-NvmlDeviceGetComputeRunningProcessesFunc nvmlDeviceGetComputeRunningProcessesFunc = NULL
-NvmlDeviceGetProcessUtilizationFunc nvmlDeviceGetProcessUtilizationFunc = NULL
-NvmlDeviceGetMultiGpuBoardFunc nvmlDeviceGetMultiGpuBoardFunc = NULL
-NvmlDeviceGetTopologyCommonAncestorFunc nvmlDeviceGetTopologyCommonAncestorFunc = NULL
-NvmlDeviceGetTopologyNearestGpusFunc nvmlDeviceGetTopologyNearestGpusFunc = NULL
-NvmlSystemGetDriverVersionFunc nvmlSystemGetDriverVersionFunc = NULL
-NvmlSystemGetCudaDriverVersionFunc nvmlSystemGetCudaDriverVersionFunc = NULL
-NvmlDeviceGetTemperatureFunc nvmlDeviceGetTemperatureFunc = NULL
-NvmlDeviceGetPowerUsageFunc nvmlDeviceGetPowerUsageFunc = NULL
+NvmlInitFunc nvmlInitFunc = NULL;
+NvmlInitWithFlagsFunc nvmlInitWithFlagsFunc = NULL;
+NvmlShutdownFunc nvmlShutdownFunc = NULL;
+NvmlErrorStringFunc nvmlErrorStringFunc = NULL;
+NvmlDeviceGetCountFunc nvmlDeviceGetCountFunc = NULL;
+NvmlDeviceGetHandleByIndexFunc nvmlDeviceGetHandleByIndexFunc = NULL;
+NvmlDeviceGetHandleByUUIDFunc nvmlDeviceGetHandleByUUIDFunc = NULL;
+NvmlDeviceGetMemoryInfoV2Func nvmlDeviceGetMemoryInfoV2Func = NULL;
+NvmlDeviceGetNameFunc nvmlDeviceGetNameFunc = NULL;
+NvmlDeviceGetUUIDFunc nvmlDeviceGetUUIDFunc = NULL;
+NvmlDeviceGetIndexFunc nvmlDeviceGetIndexFunc = NULL;
+NvmlRegisterEventsFunc nvmlRegisterEventsFunc = NULL;
+NvmlEventSetCreateFunc nvmlEventSetCreateFunc = NULL;
+NvmlEventSetWaitFunc nvmlEventSetWaitFunc = NULL;
+NvmlEventSetFreeFunc nvmlEventSetFreeFunc = NULL;
+NvmlDeviceGetUtilizationRatesFunc nvmlDeviceGetUtilizationRatesFunc = NULL;
+NvmlDeviceGetComputeRunningProcessesFunc nvmlDeviceGetComputeRunningProcessesFunc = NULL;
+NvmlDeviceGetProcessUtilizationFunc nvmlDeviceGetProcessUtilizationFunc = NULL;
+NvmlDeviceGetMultiGpuBoardFunc nvmlDeviceGetMultiGpuBoardFunc = NULL;
+NvmlDeviceGetTopologyCommonAncestorFunc nvmlDeviceGetTopologyCommonAncestorFunc = NULL;
+NvmlDeviceGetTopologyNearestGpusFunc nvmlDeviceGetTopologyNearestGpusFunc = NULL;
+NvmlSystemGetDriverVersionFunc nvmlSystemGetDriverVersionFunc = NULL;
+NvmlSystemGetCudaDriverVersionFunc nvmlSystemGetCudaDriverVersionFunc = NULL;
+NvmlDeviceGetTemperatureFunc nvmlDeviceGetTemperatureFunc = NULL;
+NvmlDeviceGetPowerUsageFunc nvmlDeviceGetPowerUsageFunc = NULL;
 
 nvmlResult_t nvmlInit(void) {
   return (nvmlInitFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlInitFunc();
