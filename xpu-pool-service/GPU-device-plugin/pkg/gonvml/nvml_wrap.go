@@ -29,7 +29,7 @@ typedef nvmlReturn_t (*NvmlDeviceGetMemoryInfoV2Func)(nvmlDevice_t device, nvmlM
 typedef nvmlReturn_t (*NvmlDeviceGetNameFunc)(nvmlDevice_t device, char *name, unsigned int length);
 typedef nvmlReturn_t (*NvmlDeviceGetUUIDFunc)(nvmlDevice_t device, char *uuid, unsigned int length);
 typedef nvmlReturn_t (*NvmlDeviceGetIndexFunc)(nvmlDevice_t device, unsigned int *index);
-typedef nvmlReturn_t (*NvmlRegisterEventsFunc)(nvmlDevice_t device, unsigned long long eventTypes, nvmlEventSet_t set);
+typedef nvmlReturn_t (*NvmlDeviceRegisterEventsFunc)(nvmlDevice_t device, unsigned long long eventTypes, nvmlEventSet_t set);
 typedef nvmlReturn_t (*NvmlEventSetCreateFunc)(nvmlEventSet_t *set);
 typedef nvmlReturn_t (*NvmlEventSetWaitFunc)(nvmlEventSet_t set, nvmlEventData_t * data, unsigned int timeoutms);
 typedef nvmlReturn_t (*NvmlEventSetFreeFunc)(nvmlEventSet_t set);
@@ -55,7 +55,7 @@ NvmlDeviceGetMemoryInfoV2Func nvmlDeviceGetMemoryInfoV2Func = NULL;
 NvmlDeviceGetNameFunc nvmlDeviceGetNameFunc = NULL;
 NvmlDeviceGetUUIDFunc nvmlDeviceGetUUIDFunc = NULL;
 NvmlDeviceGetIndexFunc nvmlDeviceGetIndexFunc = NULL;
-NvmlRegisterEventsFunc nvmlRegisterEventsFunc = NULL;
+NvmlDeviceRegisterEventsFunc nvmlDeviceRegisterEventsFunc = NULL;
 NvmlEventSetCreateFunc nvmlEventSetCreateFunc = NULL;
 NvmlEventSetWaitFunc nvmlEventSetWaitFunc = NULL;
 NvmlEventSetFreeFunc nvmlEventSetFreeFunc = NULL;
@@ -70,75 +70,75 @@ NvmlSystemGetCudaDriverVersionFunc nvmlSystemGetCudaDriverVersionFunc = NULL;
 NvmlDeviceGetTemperatureFunc nvmlDeviceGetTemperatureFunc = NULL;
 NvmlDeviceGetPowerUsageFunc nvmlDeviceGetPowerUsageFunc = NULL;
 
-nvmlResult_t nvmlInit(void) {
+nvmlReturn_t nvmlInit(void) {
   return (nvmlInitFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlInitFunc();
 }
 
-nvmlResult_t nvmlInitWithFlags(unsigned int flags) {
+nvmlReturn_t nvmlInitWithFlags(unsigned int flags) {
   return (nvmlInitWithFlagsFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlInitWithFlagsFunc(flags);
 }
 
-nvmlResult_t nvmlShutdown(void) {
+nvmlReturn_t nvmlShutdown() {
   return (nvmlShutdownFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlShutdownFunc();
 }
 
-const char *nvmlErrorString(nvmlResult_t result) {
+const char *nvmlErrorString(nvmlReturn_t result) {
   return (nvmlErrorStringFunc == NULL) ? "Function not found" : nvmlErrorStringFunc(result);
 }
 
-nvmlResult_t nvmlDeviceGetCount(unsigned int *deviceCount) {
+nvmlReturn_t nvmlDeviceGetCount(unsigned int *deviceCount) {
     return (nvmlDeviceGetCountFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetCountFunc(deviceCount);
 }
 
-nvmlResult_t nvmlDeviceGetHandleByIndex(unsigned int index, nvmlDevice_t *device) {
+nvmlReturn_t nvmlDeviceGetHandleByIndex(unsigned int index, nvmlDevice_t *device) {
     return (nvmlDeviceGetHandleByIndexFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetHandleByIndexFunc(index, device);
 }
 
-nvmlResult_t nvmlDeviceGetHandleByUUID(const char *uuid, nvmlDevice_t *device) {
+nvmlReturn_t nvmlDeviceGetHandleByUUIDHook(const char *uuid, nvmlDevice_t *device) {
     return (nvmlDeviceGetHandleByUUIDFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetHandleByUUIDFunc(uuid, device);
 }
 
-nvmlResult_t nvmlDeviceGetMemoryInfo_v2(nvmlDevice_t device, nvmlMemory_v2_t *memory) {
+nvmlReturn_t nvmlDeviceGetMemoryInfo_v2Hook(nvmlDevice_t device, nvmlMemory_v2_t *memory) {
     return (nvmlDeviceGetMemoryInfoV2Func == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetMemoryInfoV2Func(device, memory);
 }
 
-nvmlResult_t nvmlDeviceGetName(nvmlDevice_t device, char *name, unsigned int length) {
+nvmlReturn_t nvmlDeviceGetName(nvmlDevice_t device, char *name, unsigned int length) {
     return (nvmlDeviceGetNameFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetNameFunc(device, name, length);
 }
 
-nvmlResult_t nvmlDeviceGetUUID(nvmlDevice_t device, char *uuid, unsigned int length) {
+nvmlReturn_t nvmlDeviceGetUUID(nvmlDevice_t device, char *uuid, unsigned int length) {
     return (nvmlDeviceGetUUIDFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetUUIDFunc(device, uuid, length);
 }
 
-nvmlResult_t nvmlDeviceGetIndex(nvmlDevice_t device, unsigned int *index) {
+nvmlReturn_t nvmlDeviceGetIndex(nvmlDevice_t device, unsigned int *index) {
     return (nvmlDeviceGetIndexFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetIndexFunc(device, index);
 }
 
-nvmlResult_t nvmlRegisterEvents(nvmlDevice_t device, unsigned long long eventTypes, nvmlEventSet_t set) {
-    return (nvmlRegisterEventsFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlRegisterEventsFunc(device, eventTypes, set);
+nvmlReturn_t nvmlDeviceRegisterEvents(nvmlDevice_t device, unsigned long long eventTypes, nvmlEventSet_t set) {
+    return (nvmlDeviceRegisterEventsFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlRegisterEventsFunc(device, eventTypes, set);
 }
 
-nvmlResult_t nvmlEventSetCreate(nvmlEventSet_t *set) {
+nvmlReturn_t nvmlEventSetCreate(nvmlEventSet_t *set) {
     return (nvmlEventSetCreateFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlEventSetCreateFunc(set);
 }
 
-nvmlResult_t nvmlEventSetWait(nvmlEventSet_t set, nvmlEventData_t *data, unsigned int timeoutms) {
+nvmlReturn_t nvmlEventSetWait(nvmlEventSet_t set, nvmlEventData_t *data, unsigned int timeoutms) {
     return (nvmlEventSetWaitFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlEventSetWaitFunc(set, data, timeoutms);
 }
 
-nvmlResult_t nvmlEventSetFree(nvmlEventSet_t set) {
+nvmlReturn_t nvmlEventSetFree(nvmlEventSet_t set) {
     return (nvmlEventSetFreeFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlEventSetFreeFunc(set);
 }
 
-nvmlResult_t nvmlDeviceGetUtilizationRates(nvmlDevice_t device, nvmlUtilization_t *utilization) {
+nvmlReturn_t nvmlDeviceGetUtilizationRates(nvmlDevice_t device, nvmlUtilization_t *utilization) {
     return (nvmlDeviceGetUtilizationRatesFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetUtilizationRatesFunc(device, utilization);
 }
 
-nvmlResult_t nvmlDeviceGetComputeRunningProcesses(nvmlDevice_t device, unsigned int *infoSize, nvmlProcessInfo_v1_t *infos) {
+nvmlReturn_t nvmlDeviceGetComputeRunningProcesses_v1(nvmlDevice_t device, unsigned int *infoSize, nvmlProcessInfo_v1_t *infos) {
     return (nvmlDeviceGetComputeRunningProcessesFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetComputeRunningProcessesFunc(device, infoSize, infos);
 }
 
-nvmlResult_t nvmlDeviceGetProcessUtilization(nvmlDevice_t device, nvmlProcessUtilizationSample_t *samples, unsigned int *sampleSize, unsigned long long timestamp) {
+nvmlReturn_t nvmlDeviceGetProcessUtilization(nvmlDevice_t device, nvmlProcessUtilizationSample_t *samples, unsigned int *sampleSize, unsigned long long timestamp) {
     return (nvmlDeviceGetProcessUtilizationFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetProcessUtilizationFunc(device, samples, sampleSize, timestamp);
 }
 
@@ -149,7 +149,7 @@ static void loadSymbol(const char *symbolName, void **symbolPtr) {
   }
 }
 
-nvmlResult_t loadDlFunction(void) {
+nvmlReturn_t loadDlFunction(void) {
   nvmlHandle = dlopen("libnvidia-ml.so.1", RTLD_LAZY);
   if (nvmlHandle == NULL) {
     fprintf(stderr, "Failed to load libnvidia-ml.so.1\n");
