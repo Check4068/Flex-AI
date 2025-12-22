@@ -28,13 +28,13 @@ import (
 )
 
 const (
-	DeviceLength               = 7
+	deviceLength = 7
 	// PodAnnotationMaxLength pod annotation max data length 2MB
-	PodAnnotationMaxLength     = 1024 * 1024
+	PodAnnotationMaxLength = 1024 * 1024
 	// BaseDec base size
-	BaseDec                    = 10
+	BaseDec = 10
 	// BitsSize base size
-	BitsSize                   = 64
+	BitSize = 64
 )
 
 func init() {
@@ -58,7 +58,7 @@ func GetPendingPod(nodename string) (*v1.Pod, error) {
 		return nil, err
 	}
 	var (
-		oldestPod *v1.Pod
+		oldestPod      *v1.Pod
 		oldestBindTime = uint64(math.MaxUint64)
 	)
 	for _, p := range podlist.Items {
@@ -73,7 +73,7 @@ func GetPendingPod(nodename string) (*v1.Pod, error) {
 		}
 		if n, ok := p.Annotations[xpu.AssignedNode]; !ok {
 			continue
-		} else if strings.Compare(n, nodeName) == 0 {
+		} else if strings.Compare(n, nodename) == 0 {
 			if oldestBindTime > bindTime {
 				oldestPod = p
 				oldestBindTime = bindTime
@@ -116,7 +116,7 @@ func EncodeNodeDevices(dlist []*types.DeviceInfo) string {
 		encodedNodeDevices.Write([]byte(","))
 		encodedNodeDevices.Write([]byte(val.Type))
 		encodedNodeDevices.Write([]byte(","))
-		encodedNodeDevices.Write([]byte(fmt.FormatBool(val.Health)))
+		encodedNodeDevices.Write([]byte(strconv.FormatBool(val.Health)))
 		encodedNodeDevices.Write([]byte(","))
 		encodedNodeDevices.Write([]byte(strconv.Itoa(int(val.Numa))))
 		encodedNodeDevices.Write([]byte(":"))
@@ -157,7 +157,7 @@ func EncodePodDevices(pd types.PodDevices) string {
 
 // GetXPUDevice get XPUDevice info
 func GetXPUDevice(str string, ip string) map[string]*types.XPUDevice {
-	deviceMap := GetXPUDevice(str)
+	deviceMap := DecodeNodeDevices(str)
 	driverVersion, FrameworkVersion, err := xpu.GetVersionInfo()
 	if err != nil {
 		log.Infof("GetVersionInfo error %v", err)
@@ -230,7 +230,7 @@ func DecodeContainerDevices(str string) types.ContainerDevices {
 			continue
 		}
 		fields := strings.Split(val, ",")
-		tmpdev := types.ContainerDevice()
+		tmpdev := types.ContainerDevice{}
 		if len(fields) != reflect.TypeOf(tmpdev).NumField() {
 			log.Fatalln("DecodeContainerDevices invalid parameter:", str)
 			return types.ContainerDevices{}
@@ -279,10 +279,10 @@ func DecodePodDevices(str string) types.PodDevices {
 	return pd
 }
 
-func getContainerIdxByVgpuIdx(p *v1.Pod, vxpuIdx int) int {
+func getContainerIdxByVxpuIdx(p *v1.Pod, vxpuIdx int) int {
 	foundVxpuIdx := -1
 	for i, container := range p.Spec.Containers {
-		_, ok := container.Resources.Limits[xpu.VgpuNumber]
+		_, ok := container.Resources.Limits[xpu.VxpuNumber]
 		if ok {
 			foundVxpuIdx++
 			if foundVxpuIdx == vxpuIdx {
@@ -290,7 +290,7 @@ func getContainerIdxByVgpuIdx(p *v1.Pod, vxpuIdx int) int {
 			}
 			continue
 		}
-		_, ok := container.Resources.Limits[xpu.VgpuMemory]
+		_, ok = container.Resources.Limits[xpu.VxpuMemory]
 		if ok {
 			foundVxpuIdx++
 			if foundVxpuIdx == vxpuIdx {
@@ -322,9 +322,8 @@ func getVxpuLimit(resourceList v1.ResourceList) (int64, int64, int64) {
 
 // GetNextDeviceRequest get next xpu resource request of container in a pod
 // reference code: https://gitee.com/openeuler/kubernetes/blob/master/pkg/scheduler/app/plugins/deviceplugin/gpu/util.go
-func GetNextDeviceRequest(devType string, p v1.Pod) (v1.Container, types.ContainerDevices, error) {
-	pdevices := DecodePodDevices(p.Annotations[xpu.AssignedDevicesToAllocate])
-	log.Infof("pdevices=", pdevices)
+func GetNextDeviceRequest(dtype string, p v1.Pod) (v1.Container, types.ContainerDevices, error) {
+	pdevices := DecodePodDevices(p.Annotations[xpu.AssignedIDsToAllocate])
 	res := types.ContainerDevices{}
 	for vxpuIdx, val := range pdevices {
 		found := false
@@ -338,7 +337,7 @@ func GetNextDeviceRequest(devType string, p v1.Pod) (v1.Container, types.Contain
 			idx := getContainerIdxByVxpuIdx(&p, vxpuIdx)
 			if idx != -1 {
 				return p.Spec.Containers[idx], res, nil
-			} else {	
+			} else {
 				log.Errorf("get container idx by vxpuIdx failed, vxpuIdx: %v", vxpuIdx)
 			}
 			break
@@ -380,10 +379,10 @@ func EraseNextDeviceTypeFromAnnotation(dtype string, p v1.Pod) error {
 // PodAllocationSuccess try to patch annotation of a pod to indicate allocation success
 func PodAllocationTrySuccess(nodeName string, pod *v1.Pod) {
 	refreshed, _ := lock.GetClient().CoreV1().Pods(pod.Namespace).Get(context.Background(), pod.Name, metav1.GetOptions{})
-	
+
 	annos := refreshed.Annotations[xpu.AssignedDevicesToAllocate]
 	log.Infoln("TrySuccess:", annos)
-	
+
 	if strings.Contains(annos, xpu.DeviceType) {
 		return
 	}
@@ -436,9 +435,9 @@ func PatchNodeAnnotations(nodeName string, annotations map[string]string) error 
 	}
 	_, err = lock.GetClient().CoreV1().Nodes().Patch(
 		context.Background(),
-		nodeName, 
-		k8stypes.StrategicMergePatchType, 
-		bytes, 
+		nodeName,
+		k8stypes.StrategicMergePatchType,
+		bytes,
 		metav1.PatchOptions{},
 	)
 	if err != nil {
@@ -462,10 +461,10 @@ func PatchPodAnnotations(pod *v1.Pod, annotations map[string]string) error {
 		return err
 	}
 	_, err = lock.GetClient().CoreV1().Pods(pod.Namespace).Patch(
-		context.Background(), 
-		pod.Name, 
-		k8stypes.StrategicMergePatchType, 
-		bytes, 
+		context.Background(),
+		pod.Name,
+		k8stypes.StrategicMergePatchType,
+		bytes,
 		metav1.PatchOptions{})
 	if err != nil {
 		log.Infof("patch pod %s failed: %v", pod.Name, err)
@@ -474,10 +473,9 @@ func PatchPodAnnotations(pod *v1.Pod, annotations map[string]string) error {
 }
 
 // GetXpus description get xpu info on the node
-func GetXPUs() (map[string]*types.XPUDevices, error) {
+func GetXPUs() (map[string]*types.XPUDevice, error) {
 	node, err := GetNode(config.NodeName)
 	if err != nil {
-		log.Errorf("k8s get node error: %v, nodename: %s", err, config.NodeName)
 		return nil, err
 	}
 	annos, ok := node.ObjectMeta.Annotations[xpu.NodeVXPURegister]
@@ -505,7 +503,7 @@ func getNodeIp(node *v1.Node) string {
 func GetVxpus() (types.VxpuDevices, map[string][]uint32, error) {
 	selector := fields.SelectorFromSet(fields.Set{
 		"spec.nodeName": config.NodeName,
-		"status.phase": string(v1.PodRunning),
+		"status.phase":  string(v1.PodRunning),
 	})
 	podList, err := ListPods(metav1.ListOptions{
 		FieldSelector: selector.String(),
@@ -519,8 +517,8 @@ func GetVxpus() (types.VxpuDevices, map[string][]uint32, error) {
 	for _, pod := range podList.Items {
 		if pod.Status.Phase != v1.PodRunning || len(pod.Status.ContainerStatuses) == 0 {
 			errMsg := fmt.Sprintf(
-				"pod status error:, %v, container status len: %v, %d", 
-				pod.UID, pod.Status.Phase, 
+				"pod status error:, %v, container status len: %v, %d",
+				pod.UID, pod.Status.Phase,
 				len(pod.Status.ContainerStatuses))
 			log.ErrorF(errMsg)
 			continue
@@ -546,12 +544,12 @@ func GetVxpus() (types.VxpuDevices, map[string][]uint32, error) {
 			}
 			for i := 0; i < int(number); i++ {
 				dev := types.VxpuDevice{
-					Id:                    fmt.Sprintf("%s-%d", pdevices[pi][i].UUID, pdevices[pi][i].Vid),
-					GpuId:                 pdevices[pi][i].UUID,
-					PodUID:                string(pod.UID),
-					ContainerName:         cs.Name,
-					VxpuMemoryLimit:       mem * 1024,
-					VxpuCoreLimit:         core,
+					Id:              fmt.Sprintf("%s-%d", pdevices[pi][i].UUID, pdevices[pi][i].Vid),
+					GpuId:           pdevices[pi][i].UUID,
+					PodUID:          string(pod.UID),
+					ContainerName:   cs.Name,
+					VxpuMemoryLimit: mem * 1024,
+					VxpuCoreLimit:   core,
 				}
 				res = append(res, dev)
 			}

@@ -15,7 +15,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -319,7 +318,7 @@ func (l *FileLogger) oldLogFiles() ([]logInfo, error) {
 	var logFiles []logInfo
 	prefix, ext := l.getLogFilePrefixAndExt()
 	for _, f := range files {
-		fileInfo, err := f.Info()
+		fileInfo, _ := f.Info()
 		if fileInfo.IsDir() {
 			continue
 		}

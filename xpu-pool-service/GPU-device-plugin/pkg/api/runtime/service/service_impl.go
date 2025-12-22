@@ -20,41 +20,42 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"huawei.com/xpu-device-plugin/pkg/plugin/config"
-	"huawei.com/xpu-device-plugin/pkg/plugin/types"
-	"huawei.com/xpu-device-plugin/pkg/xpu"
+	"huawei.com/vxpu-device-plugin/pkg/plugin/config"
+	"huawei.com/vxpu-device-plugin/pkg/plugin/types"
+	"huawei.com/vxpu-device-plugin/pkg/plugin/util"
+	"huawei.com/vxpu-device-plugin/pkg/plugin/xpu"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/klog/v2"
 )
 
 const (
-	cgroupBaseDir         = "/sys/fs/cgroup/memory"
-	cgroupProcs           = "cgroup.procs"
-	hostProcDir           = "/host/proc"
-	hostProcStat          = "/var/lib/xpu/pids.sock"
-	procStat              = "stat"
-	npPid                 = "NpPid"
-	npPidFieldCount       = 3
-	containerPidDirPrefix = "/pod"
-	containerPidSuffix    = ".pod"
-	dockerPidPrefix       = "/docker"
-	dockerPidSuffix       = ".docker"
-	containerdIdPrefix    = "cri-containerd-"
-	containerdIdSuffix    = ".scope"
-	// containerdPrefix:6c43429a7d2899b1ce8435d275ca1b802f0d455b32a61552714145ad74206a
-	// containerdPrefix:6c43429a7d2899b1ce8435d275ca1b802f0d455b32a61552714145ad74206a
-	// containerdPrefix:f8a9833d2be7d85448fa35b5bc49c3d95faa5335373b69f9e3cA7
-	// dockerPidPrefix:3feea5b1x8ocker//docker-
-	vgpuConfigBaseDir    = "/etc/xpu"
-	vgpuConfigFileName   = "vpu_config.yaml"
-	pidsSockPerm         = 0666
-	podsDirCleanInterval = 600
-	minPeriod            = 1
-	maxPeriod            = 86400
-	defaultPeriod        = 60
-	percentRange         = 100
-	float64BitsSize      = 64
+	cgroupBaseDir                 = "/sys/fs/cgroup/memory"
+	cgroupProcs                   = "cgroup.procs"
+	pidsSockPath                  = "/var/lib/xpu/pids.sock"
+	hostProcDir                   = "/hostproc"
+	procStatus                    = "status"
+	nsPid                         = "Nspid:"
+	nsPidFieldCount               = 3
+	containerdPodIdPrefix         = "-pod"
+	dockerPodIdPrefix             = "/pod"
+	containerdPodIdSuffix         = ".slice"
+	dockerPodIdSuffix             = "/"
+	containerIdPrefix             = "containerd"
+	containerIdSuffix             = "docker://"
+	containerIdPrefixInContainerd = "containerd://"
+	containerIdPrefixInDocker     = "docker://"
+	vxpuConfigBaseDir             = "/etc/xpu"
+	pidsConfigFileName            = "pids.config"
+	configFilePerm                = 0644
+	pidsSockPerm                  = 0666
+	podDirCleanInterval           = 60
+	minPeriod                     = 1
+	maxPeriod                     = 86400
+	defaultPeriod                 = 60
+	percentage                    = 100
+	float64BitsSize               = 64
 )
 
 // PidsServiceServerImpl implementation of pids service
@@ -94,9 +95,9 @@ func readStatusFile(file string) (string, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, npPid) {
+		if strings.HasPrefix(line, nsPid) {
 			eles := strings.Fields(line)
-			if len(eles) != npPidFieldCount {
+			if len(eles) != nsPidFieldCount {
 				return "", errors.New("NpPid field count error")
 			}
 			pids := fmt.Sprintf("%s %s", eles[1], eles[2])
@@ -107,10 +108,10 @@ func readStatusFile(file string) (string, error) {
 	return "", errors.New("NpPid not found")
 }
 
-func getHostPids() (string, error) {
+func getPidMaps(hostPids []int) string {
 	pidMaps := make([]string, 0)
 	for _, hp := range hostPids {
-		procStatusPath := filepath.Join(hostProcDir, strconv.Itoa(hp), procStat)
+		procStatusPath := filepath.Clean(filepath.Join(hostProcDir, strconv.Itoa(hp), procStatus))
 		pids, err := readStatusFile(procStatusPath)
 		if err != nil {
 			klog.Warning("read proc status error: %v, path: %s", err, procStatusPath)
@@ -118,33 +119,33 @@ func getHostPids() (string, error) {
 			pidMaps = append(pidMaps, pids)
 		}
 	}
-	return strings.Join(pidMaps, ","), nil
+	return strings.Join(pidMaps, ",")
 }
 
 func parseDockerCgroupPath(cgroupPath string) (string, string, error) {
-	idx := strings.Index(cgroupPath, dockerPidPrefix)
+	idx := strings.Index(cgroupPath, dockerPodIdPrefix)
 	if idx == -1 {
 		return "", "", errors.New("pod id prefix not found")
 	}
-	podIdTmp := cgroupPath[idx+len(dockerPidPrefix):]
-	idx = strings.Index(podIdTmp, dockerPidSuffix)
+	podIdTmp := cgroupPath[idx+len(dockerPodIdPrefix):]
+	idx = strings.Index(podIdTmp, dockerPodIdSuffix)
 	if idx == -1 {
 		return "", "", errors.New("pod id suffix not found")
 	}
 	podId := podIdTmp[:idx]
 	podId = strings.Replace(podId, ".", "-", -1)
-	containerIdTmp := podIdTmp[idx+len(dockerPidSuffix):]
+	containerIdTmp := podIdTmp[idx+len(dockerPodIdSuffix):]
 	containerId := containerIdTmp
 	return podId, containerId, nil
 }
 
 func parseCgroupPath(cgroupPath string) (string, string, error) {
-	idx := strings.Index(cgroupPath, containerPidPrefix)
+	idx := strings.Index(cgroupPath, containerdPodIdPrefix)
 	if idx == -1 {
 		return parseDockerCgroupPath(cgroupPath)
 	}
-	podIdTmp := cgroupPath[idx+len(containerPidPrefix):]
-	idx = strings.Index(podIdTmp, containerPidSuffix)
+	podIdTmp := cgroupPath[idx+len(containerdPodIdPrefix):]
+	idx = strings.Index(podIdTmp, dockerPodIdPrefix)
 	if idx == -1 {
 		return "", "", errors.New("pod id suffix not found")
 	}
@@ -170,12 +171,11 @@ func getContainerName(cgroupPath string) (string, string, error) {
 		return "", "", err
 	}
 	selector := fields.SelectorFromSet(fields.Set{"spec.nodeName": config.NodeName, "status.phase": string(v1.PodRunning)})
-	podList, err := util.ListPodsWithOptions(
+	podList, err := util.ListPods(
 		metav1.ListOptions{
 			FieldSelector: selector.String(),
 		})
 	if err != nil {
-		log.Error("get pods in current node error: %v", err)
 		return "", "", err
 	}
 	for _, pod := range podList.Items {
@@ -185,7 +185,6 @@ func getContainerName(cgroupPath string) (string, string, error) {
 		if pod.Status.Phase != v1.PodRunning || len(pod.Status.ContainerStatuses) == 0 {
 			errMsg := fmt.Sprintf("pod status error: %v, container status len: %d",
 				pod.Status.Phase, len(pod.Status.ContainerStatuses))
-			log.Error(errMsg)
 			return podId, "", errors.New(errMsg)
 		}
 		for _, cs := range pod.Status.ContainerStatuses {
@@ -202,7 +201,6 @@ func getContainerName(cgroupPath string) (string, string, error) {
 func readPidsConfig(pidsConfigPath string) ([]uint32, error) {
 	f, err := os.OpenFile(pidsConfigPath, os.O_RDONLY, configFilePerm)
 	if err != nil {
-		log.Error("open pids config file error: %v", err)
 		return nil, err
 	}
 	defer f.Close()
@@ -217,7 +215,6 @@ func readPidsConfig(pidsConfigPath string) ([]uint32, error) {
 		}
 		pid, err := strconv.Atoi(tmp[0])
 		if err != nil {
-			log.Warning("pid is wrong: %v", line)
 			continue
 		}
 		pids = append(pids, uint32(pid))
@@ -228,7 +225,6 @@ func readPidsConfig(pidsConfigPath string) ([]uint32, error) {
 func writePidsConfig(pidsConfigPath, pidMaps string) error {
 	f, err := os.OpenFile(pidsConfigPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, configFilePerm)
 	if err != nil {
-		log.Error("open pids config file error: %v", err)
 		return err
 	}
 	defer f.Close()
@@ -236,8 +232,8 @@ func writePidsConfig(pidsConfigPath, pidMaps string) error {
 	w := bufio.NewWriter(f)
 	pids := strings.Split(pidMaps, ",")
 	for _, pid := range pids {
-		if err = w.WriteString(pid + "\n"); err != nil {
-			log.Error("bufio Writer WriteString error: %v", err)
+		_, err := w.WriteString(pid + "\n")
+		if err != nil {
 			return err
 		}
 	}
@@ -246,19 +242,17 @@ func writePidsConfig(pidsConfigPath, pidMaps string) error {
 
 func getPodDirNames() ([]string, error) {
 	dirNames := make([]string, 0)
-	err := filepath.Walk(vgpuConfigBaseDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(vxpuConfigBaseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Error("filepath walk func error: %v", err)
 			return err
 		}
-		if info == nil || info.IsDir() || path == vgpuConfigBaseDir {
+		if info == nil || info.IsDir() || path == vxpuConfigBaseDir {
 			return nil
 		}
 		dirNames = append(dirNames, info.Name())
 		return filepath.SkipDir
 	})
 	if err != nil {
-		log.Error("filepath walk error: %v, dir name: %s", err, vgpuConfigBaseDir)
 		return []string{}, err
 	}
 	return dirNames, nil
@@ -275,12 +269,11 @@ func cleanDestroyedPodDir() error {
 	}
 
 	selector := fields.SelectorFromSet(fields.Set{"spec.nodeName": config.NodeName})
-	podList, err := util.ListPodsWithOptions(
+	podList, err := util.ListPods(
 		metav1.ListOptions{
 			FieldSelector: selector.String(),
 		})
 	if err != nil {
-		log.Error("get pods in current node error: %v", err)
 		return err
 	}
 
@@ -292,11 +285,8 @@ func cleanDestroyedPodDir() error {
 		if _, ok := podIdSet[podDirName]; ok {
 			continue
 		}
-		podAbsoluteDir := filepath.Clean(filepath.Join(vgpuConfigBaseDir, podDirName))
+		podAbsoluteDir := filepath.Clean(filepath.Join(vxpuConfigBaseDir, podDirName))
 		err = os.RemoveAll(podAbsoluteDir)
-		if err != nil {
-			log.Info("remove pod dir error: %v, dir name: %s", err, podAbsoluteDir)
-		}
 	}
 	return nil
 }
@@ -306,19 +296,16 @@ func (PidsServiceServerImpl) GetPids(ctx context.Context, req *GetPidsRequest) (
 	cgroupAbsolutePath := filepath.Clean(filepath.Join(cgroupBaseDir, req.CgroupPath, cgroupProcs))
 	hostPids, err := readProcsFile(cgroupAbsolutePath)
 	if err != nil {
-		log.Error("read group procs error: %v, path: %s", err, cgroupAbsolutePath)
 		return nil, err
 	}
 	pidMaps := getPidMaps(hostPids)
 	podId, containerName, err := getContainerName(req.CgroupPath)
 	if err != nil {
-		log.Error("get container name error: %v, cgroup path: %s", err, req.CgroupPath)
 		return nil, err
 	}
-	pidsConfigPath := filepath.Clean(filepath.Join(vgpuConfigBaseDir, podId, containerName, pidsConfigFileName))
+	pidsConfigPath := filepath.Clean(filepath.Join(vxpuConfigBaseDir, podId, containerName, pidsConfigFileName))
 	err = writePidsConfig(pidsConfigPath, pidMaps)
 	if err != nil {
-		log.Error("write pids config error: %v, podId: %s, containerName: %s", err, podId, containerName)
 		return nil, err
 	}
 	return &GetPidsResponse{EncodedPids: pidMaps}, nil
@@ -329,10 +316,9 @@ func getPodSet(pSet map[string][]uint32) map[string][]uint32 {
 		return nil
 	}
 	for k := range pSet {
-		pidsConfigPath := filepath.Clean(filepath.Join(vgpuConfigBaseDir, k, pidsConfigFileName))
+		pidsConfigPath := filepath.Clean(filepath.Join(vxpuConfigBaseDir, k, pidsConfigFileName))
 		pids, err := readPidsConfig(pidsConfigPath)
 		if err != nil {
-			log.Error("read pids config failed, err msg: %v", err)
 			continue
 		}
 		pSet[k] = pids
@@ -340,73 +326,64 @@ func getPodSet(pSet map[string][]uint32) map[string][]uint32 {
 	return pSet
 }
 
-func setVgpuDevices(xpuDevices types.VgpuDevices,
-	uidToProcessMap map[string]map[uint32]types.ProcessUsage,
-	pSet map[string][]uint32) map[string]types.XpuDevice {
-	for _, v := range xpuDevices {
-		if _, ok := xpuDevices[v.Gpuid]; !ok {
-			log.Warning("vgpu in pod %s container %s is not exist", v.PodUID, v.ContainerName)
+func setVxpuDevices(vxpuDevices types.VxpuDevices,
+	xpuDevices map[string]*types.XPUDevice,
+	uidToProcessMap map[string]map[uint32]*types.ProcessUsage,
+	pSet map[string][]uint32) map[string]*types.XPUDevice {
+	for _, v := range vxpuDevices {
+		if _, ok := xpuDevices[v.GpuId]; !ok {
 			continue
 		}
-		// Get processUsage of xpu
-		processUsage, ok := uidToProcessMap[v.Gpuid]
-		if !ok {
-			xpuDevices[v.Gpuid].VgpuDeviceList = append(xpuDevices[v.Gpuid].VgpuDeviceList, v)
-			continue
-		}
-		// Get pidlist of the container
-		// Then we get intersection of pidlist and xpu processUsage
-		// take the pid usage of the container's vgpu on this xpu
-		pidList, ok := pSet[v.PodUID]
+
+		processUsage, ok := uidToProcessMap[v.GpuId]
 		if !ok {
 			continue
 		}
-		v.VgpuCoreUtilization += float64(processUsage.ProcessCoreUtilization)
-		v.VgpuMemoryUsed += float64(processUsage.MemoryUsed)
-		v.VgpuMemoryUsed = v.VgpuMemoryUsed / 1024 / 1024
-		if xpuDevices[v.Gpuid].Memory.Total == 0 {
-			xpuMemoryUtil := float64(v.VgpuMemoryUsed*percentage) / float64(xpuDevices[v.Gpuid].Memory.Total)
-			err := nil
-			v.VgpuMemoryUtilization, err = strconv.ParseFloat(fmt.Sprintf("%.2f", xpuMemoryUtil), float64BitsSize)
-			if err != nil {
-				log.Warning("vgpuMemoryUtil Parse failed %v", xpuMemoryUtil)
+
+		pidkey := fmt.Sprintf("%s/%s", v.PodUID, v.ContainerName)
+		for _, pid := range pSet[pidkey] {
+			if pUsage, ok := processUsage[pid]; ok {
+				v.VxpuCoreUtilization += float64(pUsage.ProcessCoreUtilization)
+				v.VxpuMemoryUsed += pUsage.ProcessMem
 			}
 		}
-		xpuDevices[v.Gpuid].VgpuDeviceList = append(xpuDevices[v.Gpuid].VgpuDeviceList, v)
+		v.VxpuMemoryUsed = v.VxpuMemoryUsed / 1024 / 1024
+		if xpuDevices[v.GpuId].MemoryTotal != 0 {
+			vxpuMemoryUtil := float64(v.VxpuMemoryUsed*percentage) / float64(xpuDevices[v.GpuId].MemoryTotal)
+			vxpuMemoryUtil, err := strconv.ParseFloat(fmt.Sprintf("%.2f", vxpuMemoryUtil), float64BitsSize)
+			if err != nil {
+				v.VxpuMemoryUtilization = vxpuMemoryUtil
+			}
+		}
+		xpuDevices[v.GpuId].VxpuDeviceList = append(xpuDevices[v.GpuId].VxpuDeviceList, v)
 	}
 	for _, device := range xpuDevices {
-		for _, vgpuDevice := range device.VgpuDeviceList {
-			memoryUtil := float64(vgpuDevice.VgpuMemoryUsed) / float64(device.Memory.Total)
-			memoryUtil, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memoryUtil), float64BitsSize)
-			if err != nil {
-				log.Warning("vgpuMemoryUtil Parse failed %v", memoryUtil)
-			}
-			device.MemoryUtilization = memoryUtil
+		for _, vxpuDevices := range device.VxpuDeviceList {
+			device.MemoryUsed += vxpuDevices.VxpuMemoryUsed
 		}
+		memoryUtil := float64(device.MemoryUsed*percentage) / float64(device.MemoryTotal)
+		memoryUtil, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", memoryUtil), float64BitsSize)
+		device.MemoryUtilization = memoryUtil
 	}
 	return xpuDevices
 }
 
 // GetAllVgpuInfo get all vgpu info of the node
-func (PidsServiceServerImpl) GetAllVgpuInfo(ctx context.Context, req *GetAllVgpuInfoRequest) (*GetAllVgpuInfoResponse, error) {
-	getAllVgpuInfoResponse := &GetAllVgpuInfoResponse{}
+func (PidsServiceServerImpl) GetAllVxpuInfo(ctx context.Context, req *GetAllVgpuInfoRequest) (*GetAllVgpuInfoResponse, error) {
 	period, err := strconv.Atoi(req.Period)
 	if err != nil || period < minPeriod || period > maxPeriod {
-		log.Warning("period is unqualified, err msg: %v", req.Period, err)
 		period = defaultPeriod
 	}
 
 	// xpuDevices: map[uuid]xpuDevice
-	xpuDevices, err := util.GetXPU()
+	xpuDevices, err := util.GetXPUs()
 	if err != nil {
-		log.Error("get xpu device info failed, err msg: %v", err)
 		return nil, err
 	}
 
 	// vgpuDevices: types.VgpuDevices[]
-	vgpuDevices, pSet, err := util.GetVgpus()
+	vxpuDevices, pSet, err := util.GetVxpus()
 	if err != nil {
-		log.Error("get vgpu device info failed, err msg: %v", err)
 		return nil, err
 	}
 
@@ -414,22 +391,21 @@ func (PidsServiceServerImpl) GetAllVgpuInfo(ctx context.Context, req *GetAllVgpu
 	pSet = getPodSet(pSet)
 
 	// uidToProcessMap: map[uuid]map[processId]processUsage
-	uidToProcessMap := make(map[string]map[uint32]types.ProcessUsage)
+	uidToProcessMap := make(map[string]map[uint32]*types.ProcessUsage)
 	for _, v := range xpuDevices {
 		deviceUsageInfo, processMap, err := xpu.GetXPUUsage(v.Index, int32(period))
 		if err != nil {
-			log.Error("get xpu usage failed: %v", err)
 			return nil, err
 		}
 		// XpuUtilization = deviceUsageInfo.CoreUtil
-		v.Power = deviceUsageInfo.Power
+		v.XpuUtilization = float64(deviceUsageInfo.CoreUtil)
+		v.PowerUsage = deviceUsageInfo.PowerUsage
 		v.Temperature = deviceUsageInfo.Temperature
-		uidToProcessMap[v.UUID] = processMap
+		uidToProcessMap[v.Id] = processMap
 	}
-	xpuDevices = setVgpuDevices(xpuDevices, vgpuDevices, uidToProcessMap, pSet)
+	xpuDevices = setVxpuDevices(vxpuDevices, xpuDevices, uidToProcessMap, pSet)
 	jsonVgpuInfos, err := json.Marshal(xpuDevices)
 	if err != nil {
-		log.Error("Generate JSON string error: %v", err)
 		return nil, err
 	}
 	return &GetAllVgpuInfoResponse{VgpuInfos: string(jsonVgpuInfos)}, nil
@@ -441,23 +417,19 @@ func Start() {
 	RegisterPidsServiceServer(srv, PidsServiceServerImpl{})
 	err := syscall.Unlink(pidsSockPath)
 	if err != nil && !os.IsNotExist(err) {
-		log.Error("remove pids server sock error: %v", err)
 		return
 	}
 	listener, err := net.Listen("unix", pidsSockPath)
 	if err != nil {
-		log.Error("net listen error: %v", err)
 		return
 	}
 	err = os.Chmod(pidsSockPath, pidsSockPerm)
 	if err != nil {
-		log.Error("modify pids.sock file permissions error: %v", err)
 		return
 	}
 	go func() {
 		err := srv.Serve(listener)
 		if err != nil {
-			log.Error("grpc server error: %v", err)
 		}
 	}()
 	go func() {
@@ -465,7 +437,6 @@ func Start() {
 			time.Sleep(time.Second * podDirCleanInterval)
 			err := cleanDestroyedPodDir()
 			if err != nil {
-				log.Error("clean destroyed pod dir error: %v, stop cleanup...", err)
 				break
 			}
 		}

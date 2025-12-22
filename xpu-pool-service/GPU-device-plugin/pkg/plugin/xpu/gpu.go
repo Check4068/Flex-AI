@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -24,7 +23,6 @@ import (
 
 	"huawei.com/vxpu-device-plugin/pkg/gonvml"
 	"huawei.com/vxpu-device-plugin/pkg/graph"
-	"huawei.com/vxpu-device-plugin/pkg/log"
 	"huawei.com/vxpu-device-plugin/pkg/plugin/config"
 	"huawei.com/vxpu-device-plugin/pkg/plugin/types"
 )
@@ -35,11 +33,11 @@ const (
 	// VxpuCore vxpu core resource name
 	VxpuCore = "huawei.com/vxpu-cores"
 	// VxpuMemory vxpu memory resource name
-	VxpuMemory 						= "huawei.com/vxpu-memory.1Gi"
-	microSecond 					= 1000 * 1000
-	milliwatts 						= 1000
-	eventWaitTimeout 				= 5000
-	nvidiaXidErrorPageFault 		= 31
+	VxpuMemory                      = "huawei.com/vxpu-memory.1Gi"
+	microSecond                     = 1000 * 1000
+	milliwatts                      = 1000
+	eventWaitTimeout                = 5000
+	nvidiaXidErrorPageFault         = 31
 	nvidiaXidErrorStoppedProcessing = 43
 	nvidiaXidErrorPreemptiveCleanup = 45
 	// VisibleDevices visible nvidia devices env
@@ -49,17 +47,16 @@ const (
 	// VxpuConfigFileName vxpu ids config file name
 	VxpuIdsConfigFileName = "vgpu-ids.config"
 	// DeviceAssign device type supported by the device plugin
-	DeviceType = "GPU"
-	AssignedIDs                = "huawei.com/vgpu-ids-new"
-	AssignedIDsToAllocate      = "huawei.com/vgpu-devices-to-allocate"
-	NodeVXPUHandshake		   = "huawei.com/node-vxpu-handshake"
-	NodeVXPURegister           = "huawei.com/node-vgpu-register"
-	NodeVXPUUsed               = "huawei.com/node-vgpu-used"
+	DeviceType            = "GPU"
+	AssignedIDs           = "huawei.com/vgpu-ids-new"
+	AssignedIDsToAllocate = "huawei.com/vgpu-devices-to-allocate"
+	NodeVXPUHandshake     = "huawei.com/node-vxpu-handshake"
+	NodeVXPURegister      = "huawei.com/node-vgpu-register"
+	NodeVXPUUsed          = "huawei.com/node-vgpu-used"
 	// AssignedNode assigned node name
-	AssignedNode               = "huawei.com/vgpu-node"
+	AssignedNode = "huawei.com/vgpu-node"
 	// NodeXpuTopology node gpu topology
-	NodeXpuTopology            = "huawei.com/node-gpu-topology"
-
+	NodeXpuTopology = "huawei.com/node-gpu-topology"
 )
 
 var (
@@ -82,7 +79,7 @@ func Init() error {
 // Uninit uninitialize gpu nvml
 func Uninit() error {
 	ret := gonvml.Shutdown()
-	log.Infof("NVML shutdown of returned: %v", ret)	
+	log.Infof("NVML shutdown of returned: %v", ret)
 	return nil
 }
 
@@ -202,13 +199,13 @@ func GetDeviceInfo(devs []*Device) []*types.DeviceInfo {
 		registeredMem := int32(memInfo.Total / 1024 / 1024)
 		log.Infof("nvml registered deviceId", dev.ID, "memory", registeredMem, "name", name)
 		res = append(res, &types.DeviceInfo{
-			Index:     dev.logicID,
-			Id:        dev.ID,
-			Count:     int32(config.DeviceSplitCount),
-			Devmem:    registeredMem,
-			Type:      fmt.Sprintf("%v-%v", DeviceType, resolveDeviceName(name)),
-			Health:    dev.Health == v1beta1.Healthy,
-			Numa:      int32(numa),
+			Index:  dev.logicID,
+			Id:     dev.ID,
+			Count:  int32(config.DeviceSplitCount),
+			Devmem: registeredMem,
+			Type:   fmt.Sprintf("%v-%v", DeviceType, resolveDeviceName(name)),
+			Health: dev.Health == v1beta1.Healthy,
+			Numa:   int32(numa),
 		})
 	}
 	return res
@@ -293,7 +290,7 @@ func GetXPUUsage(index, period int32) (types.DeviceUsageInfo, map[uint32]*types.
 			p := types.ProcessUsage{ProcessMem: 0, ProcessCoreUtilization: 0}
 			processMap[v.Pid] = &p
 		}
-		p := processMap[v.Pid].ProcessCoreUtilization = uint64(v.SmUtil)
+		processMap[v.Pid].ProcessCoreUtilization = uint64(v.SmUtil)
 	}
 	return retDeviceUsageInfo, processMap, nil
 }
@@ -381,7 +378,7 @@ func getTopologyFromCommand() (*bytes.Buffer, error) {
 	return stdout, nil
 }
 
-// lookExecutableInPath looks for executable file from the PATH environment variables, and return default file is not found. 
+// lookExecutableInPath looks for executable file from the PATH environment variables, and return default file is not found.
 func lookExecutableInPath(file string, defaultFile string) string {
 	binary, err := exec.LookPath(file)
 	if err != nil {
@@ -392,7 +389,9 @@ func lookExecutableInPath(file string, defaultFile string) string {
 
 // parseTopologyGraph parses the output of "nvidia-smi topo --matrix" command into a topology graph.
 // Example output:
-// 		GPU0    GPU1    CPU Affinity    NUMA Affinity    GPU NUMA ID
+//
+//	GPU0    GPU1    CPU Affinity    NUMA Affinity    GPU NUMA ID
+//
 // GPU0      X      PHB     0-23            N/A              N/A
 // GPU1     PHB      X      0-23            N/A              N/A
 // Legend:
@@ -405,10 +404,6 @@ func parseTopologyGraph(reader io.Reader) (graph.TopologyGraph, error) {
 	}
 	// this is header, handle begins at next line
 	g := graph.NewTopologyGraph(gpuCount)
-	// GPU0    GPU1
-	// X      PHB
-	// PHB      X
-	// populates gpu identifier, also row number
 	i := 0
 	for scanner.Scan() && i < gpuCount {
 		text := scanner.Text()
@@ -429,7 +424,8 @@ func parseTopologyGraph(reader io.Reader) (graph.TopologyGraph, error) {
 // getGpuCountFromHeader counts how many GPUs on the host
 // by parsing first line of nvidia-smi topo command.
 // Header example:
-// 		GPU0    GPU1    CPU Affinity    NUMA Affinity    GPU NUMA ID
+//
+//	GPU0    GPU1    CPU Affinity    NUMA Affinity    GPU NUMA ID
 func getGpuCountFromHeader(header string) int {
 	log.Debugf("get gpu count from header: %s", header)
 	tokens := splitter.Split(strings.TrimSpace(header), -1)
@@ -465,7 +461,7 @@ func detectRate(deviceId1 string, deviceId2 string, linkType string) int {
 		return rate[linkType]
 	}
 
-	// for group match nvRegexp, if matches, the result should contain original match string, 
+	// for group match nvRegexp, if matches, the result should contain original match string,
 	// plus the group match string, so the result length must be 2.
 	// index 1 means group match string, which is the number of NVlinks.
 	n, err := strconv.ParseInt(matchNvLink[1], 10, 32)

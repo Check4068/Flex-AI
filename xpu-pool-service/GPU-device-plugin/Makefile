@@ -9,7 +9,7 @@ EXTLDFLAGS := \
 	-Wl,-z,now \
 	-Wl,-z,noexecstack
 
-all: vgpu vnpu xpu-client-tool
+all: vgpu xpu-client-tool
 
 vgpu:
 	export CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' && \
@@ -19,16 +19,6 @@ vgpu:
 		-buildmode=pie \
 		-ldflags="-s -w -linkmode 'external' -extldflags '$(EXTLDFLAGS)'" \
 		-o gpu-device-plugin \
-		./cmd
-
-vnpu:
-	export CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' && \
-	export CGO_CFLAGS="-fcommon" && export CGO_CPPFLAGS="-fcommon" && \
-	go build \
-		-tags vnpu \
-		-buildmode=pie \
-		-ldflags="-s -w -linkmode 'external' -extldflags '$(EXTLDFLAGS)'" \
-		-o npu-device-plugin \
 		./cmd
 
 xpu-client-tool:
