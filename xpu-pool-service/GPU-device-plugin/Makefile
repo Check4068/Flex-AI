@@ -15,6 +15,7 @@ vgpu:
 	export CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' && \
 	export CGO_CFLAGS="-D_FORTIFY_SOURCE=2 -O2" && \
 	go build \
+		-buildvcs=false \
 		-tags vgpu \
 		-buildmode=pie \
 		-ldflags="-s -w -linkmode 'external' -extldflags '$(EXTLDFLAGS)'" \
