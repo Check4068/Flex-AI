@@ -32,10 +32,10 @@ const (
 )
 
 func checkLoggerParamValid() error {
-	if *maxAge < 0 {
+	if *maxAge <= 0 {
 		return errors.New("the max-ages is invalid")
 	}
-	if *maxBackups < 0 {
+	if *maxBackups <= 0 {
 		return errors.New("the max-backups is invalid")
 	}
 	return nil
@@ -48,13 +48,13 @@ func InitLogging(logName string) error {
 		Fatalln(err)
 	}
 
-	logFileOutput := &FileLogger{
+	logFileOutput := FileLogger{
 		fileName:   logName,
 		maxSize:    *maxSize,
 		maxBackups: *maxBackups,
 		maxAge:     *maxAge,
 	}
-	logger.SetOutput(logFileOutput)
+	logger.SetOutput(&logFileOutput)
 
 	// set logging level
 	level, err := parseLogLevel()
@@ -109,7 +109,7 @@ func (f *PlainTextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		b = &bytes.Buffer{}
 	}
 
-	if _, err := fmt.Fprintf(b, "%s %d ", entry.Time.Format(f.TimestampFormat), f.pid); err != nil {
+	if _, err := fmt.Fprintf(b, "%s %d", entry.Time.Format(f.TimestampFormat), f.pid); err != nil {
 		return nil, err
 	}
 

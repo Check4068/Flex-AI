@@ -71,19 +71,19 @@ NvmlDeviceGetTemperatureFunc nvmlDeviceGetTemperatureFunc = NULL;
 NvmlDeviceGetPowerUsageFunc nvmlDeviceGetPowerUsageFunc = NULL;
 
 nvmlReturn_t nvmlInit(void) {
-  return (nvmlInitFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlInitFunc();
+	return (nvmlInitFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlInitFunc();
 }
 
 nvmlReturn_t nvmlInitWithFlags(unsigned int flags) {
-  return (nvmlInitWithFlagsFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlInitWithFlagsFunc(flags);
+	return (nvmlInitWithFlagsFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlInitWithFlagsFunc(flags);
 }
 
 nvmlReturn_t nvmlShutdown() {
-  return (nvmlShutdownFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlShutdownFunc();
+	return (nvmlShutdownFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlShutdownFunc();
 }
 
-const char *nvmlErrorString(nvmlReturn_t result) {
-  return (nvmlErrorStringFunc == NULL) ? "Function not found" : nvmlErrorStringFunc(result);
+const char* nvmlErrorString(nvmlReturn_t result) {
+	return (nvmlErrorStringFunc == NULL) ? "Function not found" : nvmlErrorStringFunc(result);
 }
 
 nvmlReturn_t nvmlSystemGetDriverVersion(char *version, unsigned int length) {

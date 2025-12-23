@@ -23,17 +23,18 @@ import (
 
 	"huawei.com/vxpu-device-plugin/pkg/gonvml"
 	"huawei.com/vxpu-device-plugin/pkg/graph"
+	"huawei.com/vxpu-device-plugin/pkg/log"
 	"huawei.com/vxpu-device-plugin/pkg/plugin/config"
 	"huawei.com/vxpu-device-plugin/pkg/plugin/types"
 )
 
 const (
 	// VxpuNumber vxpu number resource name
-	VxpuNumber = "huawei.com/vxpu-number"
+	VxpuNumber = "huawei.com/vgpu-number"
 	// VxpuCore vxpu core resource name
-	VxpuCore = "huawei.com/vxpu-cores"
+	VxpuCore = "huawei.com/vgpu-cores"
 	// VxpuMemory vxpu memory resource name
-	VxpuMemory                      = "huawei.com/vxpu-memory.1Gi"
+	VxpuMemory                      = "huawei.com/vgpu-memory.1Gi"
 	microSecond                     = 1000 * 1000
 	milliwatts                      = 1000
 	eventWaitTimeout                = 5000
@@ -86,7 +87,7 @@ func Uninit() error {
 // DeviceManager implements the IDeviceManager interface for GPU devices on NVidia devices
 type DeviceManager struct{}
 
-func check(ret gonvml.ReturnType) {
+func check(ret gonvml.NvmlRetType) {
 	if ret != gonvml.Success {
 		log.Panicln("Fatal:", ret)
 	}
@@ -109,8 +110,8 @@ func (*DeviceManager) Devices() []*Device {
 func (*DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device, unhealthy chan<- *Device) {
 	checkHealth(stop, devices, unhealthy)
 }
-func buildDevice(dev gonvml.Device, logicID int32) *Device {
-	d := &Device{}
+func buildDevice(d gonvml.Device, logicID int32) *Device {
+	dev := &Device{}
 	uuid, ret := d.GetUUID()
 	check(ret)
 	dev.ID = uuid
@@ -180,17 +181,14 @@ func GetDeviceInfo(devs []*Device) []*types.DeviceInfo {
 		ndev, ret := gonvml.DeviceGetHandleByUUID(dev.ID)
 		if ret != gonvml.Success {
 			log.Fatalln("get device handle failed, deviceId: %v, ret: %v", dev.ID, ret)
-			continue
 		}
 		memInfo, ret := ndev.GetMemoryInfoV2()
 		if ret != gonvml.Success {
 			log.Fatalln("get memory info failed, deviceId: %v, ret: %v", dev.ID, ret)
-			continue
 		}
 		name, ret := ndev.GetName()
 		if ret != gonvml.Success {
 			log.Fatalln("get name failed, deviceId: %v, ret: %v", dev.ID, ret)
-			continue
 		}
 		numa, err := getNumaInformation(int(dev.LogicID))
 		if err != nil {
@@ -199,7 +197,7 @@ func GetDeviceInfo(devs []*Device) []*types.DeviceInfo {
 		registeredMem := int32(memInfo.Total / 1024 / 1024)
 		log.Infof("nvml registered deviceId", dev.ID, "memory", registeredMem, "name", name)
 		res = append(res, &types.DeviceInfo{
-			Index:  dev.logicID,
+			Index:  dev.LogicID,
 			Id:     dev.ID,
 			Count:  int32(config.DeviceSplitCount),
 			Devmem: registeredMem,
@@ -222,7 +220,7 @@ func resolveDeviceName(deviceName string) string {
 			return abbreviation
 		}
 	}
-	pattern := `^[A-Z]+-[A-Z]+[0-9]+[A-Z]*$`
+	pattern := `^[A-Z]+[0-9]+[A-Z]*$`
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
 		log.Fatalln("regexp compile failed: %s", err)
@@ -306,7 +304,7 @@ func getDeviceUsageInfo(dev gonvml.Device) (types.DeviceUsageInfo, error) {
 		log.Errorf("device GetPowerUsage failed: %v", ret)
 		return types.DeviceUsageInfo{}, fmt.Errorf("gonvml.GetPowerUsage failed: %v", ret)
 	}
-	temperature, ret := dev.GetTemperature(gonvml.TemperatureGpu)
+	temperature, ret := dev.GetTemperature(gonvml.NvmlTemperatureGpu)
 	if ret != gonvml.Success && ret != gonvml.ErrorNotFound {
 		log.Errorf("device GetTemperature failed: %v", ret)
 		return types.DeviceUsageInfo{}, fmt.Errorf("gonvml.GetTemperature failed: %v", ret)
@@ -326,7 +324,7 @@ const (
 	// nvidiaSmiCommand means the nvidia-smi command.
 	nvidiaSmiExecutable = "nvidia-smi"
 	// notapplicable means no numa for the specified GPU.
-	notapplicable = "N/A"
+	notApplicable = "N/A"
 )
 
 var (
@@ -341,7 +339,7 @@ var (
 // gpuTopologyProvider is a gpu topology provider implementation.
 type gpuTopologyProvider struct{}
 
-var _ graph.TopologyProvider = (*gpuTopologyProvider{})(nil)
+var _ graph.TopologyProvider = (*gpuTopologyProvider)(nil)
 
 // NewTopologyProvider creates an TopologyProvider instance.
 func NewTopologyProvider() graph.TopologyProvider {
@@ -360,15 +358,15 @@ func (provider *gpuTopologyProvider) Topology() string {
 // buildTopologyGraph builds topology graph for gpu.
 // Currently, we get the GPU topology by parsing output of nvidia-smi output.
 func (provider *gpuTopologyProvider) buildTopologyGraph() (graph.TopologyGraph, error) {
-	stdout, err := getGpuTopologyFromCommand()
+	stdOut, err := getGpuTopologyFromCommand()
 	if err != nil {
 		return nil, err
 	}
-	return parseTopologyGraph(stdout)
+	return parseTopologyGraph(stdOut)
 }
 
 // getTopologyFromCommand get topology output of command "nvidia-smi topo --matrix".
-func getTopologyFromCommand() (*bytes.Buffer, error) {
+func getGpuTopologyFromCommand() (*bytes.Buffer, error) {
 	stdout := new(bytes.Buffer{})
 	cmd := exec.Command(lookExecutableOrDefault(nvidiaSmiExecutable, defaultNvidiaSmiBinary), "topo", "--matrix")
 	cmd.Stdout = stdout
@@ -379,7 +377,7 @@ func getTopologyFromCommand() (*bytes.Buffer, error) {
 }
 
 // lookExecutableInPath looks for executable file from the PATH environment variables, and return default file is not found.
-func lookExecutableInPath(file string, defaultFile string) string {
+func lookExecutableOrDefault(file string, defaultFile string) string {
 	binary, err := exec.LookPath(file)
 	if err != nil {
 		return defaultFile
@@ -410,7 +408,7 @@ func parseTopologyGraph(reader io.Reader) (graph.TopologyGraph, error) {
 		log.Debugf("parse topology graph line %d: %s", i, text)
 		tokens := splitter.Split(strings.TrimSpace(text), -1)
 		// tokens[0] is GPU identifier
-		for j := 1; j < j <= gpuCount && j < len(tokens); j++ {
+		for j := 1; j <= gpuCount && j < len(tokens); j++ {
 			if i == j-1 { // means GPU itself
 				continue
 			}
@@ -441,21 +439,17 @@ func getGpuCountFromHeader(header string) int {
 var (
 	nvLinkBaseRate = 50 // for WLN link type, we give it a base rate 50
 	nvLinkUnitRate = 10 // for each NVLink, it contributes extra rate to the base rate
+	rate           = map[string]int{
+		"PIX":  50,
+		"PXB":  40,
+		"PHB":  30,
+		"NODE": 20,
+		"SYS":  10,
+	}
 )
 
-// rateMap is a dictionary that lists the rate between devices based on the link type.
-// We don't find the rate definition in list, so we classify using library to detect it
-// from a dictionary.
-var rateMap = map[string]int{
-	"PIX":  50, // Connection traversing a single PCIe bridge
-	"PXB":  40, // Connection traversing multiple PCIe bridges (e.g. traversing the PCIe Host Bridge)
-	"PXB":  30, // Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
-	"NODE": 20, // Connection traversing PCIe as well as the interconnect bewteen PCIe Host Bridges within a NUMA nodes
-	"SYS":  10, // Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g. QPI/UPI)
-}
-
 // detectRate finds the rate between the devices.
-func detectRate(deviceId1 string, deviceId2 string, linkType string) int {
+func detectRate(deviceId1 int, deviceId2 int, linkType string) int {
 	matchNvLink := nvRegexp.FindStringSubmatch(linkType)
 	if len(matchNvLink) == 0 { // not nvlink
 		return rate[linkType]

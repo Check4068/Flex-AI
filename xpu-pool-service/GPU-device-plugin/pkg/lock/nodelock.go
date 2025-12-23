@@ -49,9 +49,7 @@ func NewClient() error {
 	if kubeConfig == "" {
 		kubeConfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 	}
-	var config *rest.Config
-	var err error
-	config, err = rest.InClusterConfig()
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
 		if err != nil {
@@ -59,9 +57,6 @@ func NewClient() error {
 		}
 	}
 	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
 	kubeClient = client
 	return nil
 }

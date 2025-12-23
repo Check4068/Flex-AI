@@ -58,7 +58,7 @@ func GetPendingPod(nodename string) (*v1.Pod, error) {
 		return nil, err
 	}
 	var (
-		oldestPod      *v1.Pod
+		oldestPod      v1.Pod
 		oldestBindTime = uint64(math.MaxUint64)
 	)
 	for _, p := range podlist.Items {
@@ -380,7 +380,7 @@ func EraseNextDeviceTypeFromAnnotation(dtype string, p v1.Pod) error {
 func PodAllocationTrySuccess(nodeName string, pod *v1.Pod) {
 	refreshed, _ := lock.GetClient().CoreV1().Pods(pod.Namespace).Get(context.Background(), pod.Name, metav1.GetOptions{})
 
-	annos := refreshed.Annotations[xpu.AssignedDevicesToAllocate]
+	annos := refreshed.Annotations[xpu.AssignedIDsToAllocate]
 	log.Infoln("TrySuccess:", annos)
 
 	if strings.Contains(annos, xpu.DeviceType) {
@@ -481,8 +481,8 @@ func GetXPUs() (map[string]*types.XPUDevice, error) {
 	annos, ok := node.ObjectMeta.Annotations[xpu.NodeVXPURegister]
 	if !ok {
 		errMsg := fmt.Sprintf("node %s annotation %s is not exists",
-			config.NodeName, xpu.NodeVGPURegister)
-		log.ErrorF(errMsg)
+			config.NodeName, xpu.NodeVXPURegister)
+		log.Errorf(errMsg)
 		return nil, errors.New(errMsg)
 	}
 	ip := getNodeIp(node)
@@ -520,10 +520,10 @@ func GetVxpus() (types.VxpuDevices, map[string][]uint32, error) {
 				"pod status error:, %v, container status len: %v, %d",
 				pod.UID, pod.Status.Phase,
 				len(pod.Status.ContainerStatuses))
-			log.ErrorF(errMsg)
+			log.Errorf(errMsg)
 			continue
 		}
-		pdevices := DecodePodDevices(pod.Annotations[xpu.AssignedIDsToAllocate])
+		pdevices := DecodePodDevices(pod.Annotations[xpu.AssignedIDs])
 		pi := 0
 		for _, cs := range pod.Spec.Containers {
 			number, core, mem := getVxpuLimit(cs.Resources.Limits)
