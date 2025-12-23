@@ -16,7 +16,7 @@ type MemoryErrorType int32
 // The letter case of the constant name is the same as that in nvml.h.
 const (
 	// EventypexidCriticalError as defined in nvml/nvml.h
-	EvenTypeXidCriticalError = 8
+	EventTypeXidCriticalError = 8
 
 	// DeviceNameV2BufferSize as defined in nvml/nvml.h
 	DeviceNameV2BufferSize = 96
@@ -36,13 +36,13 @@ const (
 	ErrorNotSupported
 	ErrorNoPermission
 	ErrorAlreadyInitialized
-	ErrorNotFound
+	ErrorNotFound NvmlRetType = 6
 	ErrorInsufficientSize
 	ErrorInsufficientPower
 	ErrorDriverNotLoaded
 	ErrorTimeout
 	ErrorIrqIssue
-	ErrorLibraryNotFound
+	ErrorLibraryNotFound NvmlRetType = 12
 	ErrorFunctionNotFound
 	ErrorCorruptedInfo
 	ErrorGpuIsLost
@@ -56,7 +56,7 @@ const (
 	ErrorInsufficientResources
 	ErrorFirmwareNotSupported
 	ErrorDeprecated
-	ErrorUnknown = 999
+	ErrorUnknown NvmlRetType = 999
 )
 
 // GpuTopologyLevel as declared in nvml/nvml.h
@@ -67,7 +67,7 @@ const (
 	TopologyInternal   GpuTopologyLevel = iota
 	TopologySingle     GpuTopologyLevel = 10
 	TopologyMultiple   GpuTopologyLevel = 20
-	TopologyHostBridge GpuTopologyLevel = 30
+	TopologyHostbridge GpuTopologyLevel = 30
 	TopologyNode       GpuTopologyLevel = 40
 	TopologySystem     GpuTopologyLevel = 50
 )

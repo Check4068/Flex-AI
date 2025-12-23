@@ -28,7 +28,7 @@ func (device nvmlDevice) GetName() (string, NvmlRetType) {
 	return string(name[:clen(name)]), ret
 }
 
-func (device nvmlDevice) RegisterEvent(eventTypes uint64, set EventSet) NvmlRetType {
+func (device nvmlDevice) RegisterEvents(eventTypes uint64, set EventSet) NvmlRetType {
 	return nvmlDeviceRegisterEventsWrapper(device, eventTypes, set.(nvmlEventSet))
 }
 
@@ -52,14 +52,14 @@ func (device nvmlDevice) GetUtilizationRates() (Utilization, NvmlRetType) {
 
 func (device nvmlDevice) GetComputeRunningProcesses() ([]ProcessInfoV1, NvmlRetType) {
 	var infoSize = pidMaxSize
-	var infos = make([]ProcessInfoV1, infoSize)
+	infos := make([]ProcessInfoV1, infoSize)
 	ret := nvmlDeviceGetComputeRunningProcessesWrapper(device, &infoSize, &infos[0])
 	return infos, ret
 }
 
-func (device nvmlDevice) GetProcessUtilization(timestamp uint64) ([]ProcessUtilizationSample, NvmlRetType) {
+func (device nvmlDevice) DeviceGetProcessUtilization(timestamp uint64) ([]ProcessUtilizationSample, NvmlRetType) {
 	var sampleSize = pidMaxSize
-	var samples = make([]ProcessUtilizationSample, sampleSize)
+	samples := make([]ProcessUtilizationSample, sampleSize)
 	ret := nvmlDeviceGetProcessUtilizationWrapper(device, &samples[0], &sampleSize, timestamp)
 	return samples, ret
 }
@@ -99,7 +99,7 @@ func nvmlDeviceHandle(d Device) nvmlDevice {
 			if !val.Type().Field(i).Anonymous {
 				continue
 			}
-			if val.Field(i).Type().Implements(reflect.TypeOf((*Device)(nil)).Elem()) {
+			if !val.Field(i).Type().Implements(reflect.TypeOf((*Device)(nil)).Elem()) {
 				continue
 			}
 			return helper(val.Field(i))
@@ -113,7 +113,7 @@ func (device nvmlDevice) GetTopologyNearestGpus(level GpuTopologyLevel) ([]Devic
 	var count uint32
 	ret := nvmlDeviceGetTopologyNearestGpusWrapper(device, level, &count, nil)
 	if ret != Success {
-		return []Device{}, ret
+		return nil, ret
 	}
 	if count == 0 {
 		return []Device{}, ret
