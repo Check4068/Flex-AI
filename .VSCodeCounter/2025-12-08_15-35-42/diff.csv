@@ -1,0 +1,45 @@
+"filename", "language", "Markdown", "Go", "Makefile", "Go Checksum File", "YAML", "Go Module File", "Shell Script", "CMake", "JSON", "XML", "Docker", "comment", "blank", "total"
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\CMakeLists.txt", "CMake", 0, 0, 0, 0, 0, 0, 0, 19, 0, 0, 0, 0, 7, 26
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\Makefile", "Makefile", 0, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 2, 6, 42
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\client\client.go", "Go", 0, 53, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 9, 75
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\client\client_test.go", "Go", 0, 146, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 17, 202
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\cmd\main.go", "Go", 0, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 38, 25, 160
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\cmd\main_test.go", "Go", 0, 347, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 9, 358
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\examples\vgpu-exceed.yml", "YAML", 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 1, 0, 15
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\examples\vgpu-test.yml", "YAML", 0, 0, 0, 0, 25, 0, 0, 0, 0, 0, 0, 0, 0, 25
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\examples\vgpu-whole-card.yml", "YAML", 0, 0, 0, 0, 13, 0, 0, 0, 0, 0, 0, 0, 0, 13
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\go.mod", "Go Module File", 0, 0, 0, 0, 0, 63, 0, 0, 0, 0, 0, 0, 4, 67
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\go.sum", "Go Checksum File", 0, 0, 0, 177, 0, 0, 0, 0, 0, 0, 0, 0, 0, 177
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\api.pb.go", "Go", 0, 289, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 42, 349
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\api_grpc.pb.go", "Go", 0, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 18, 148
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\service_impl.go", "Go", 0, 422, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 33, 476
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\pkg\api\runtime\service\service_impl_test.go", "Go", 0, 233, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 22, 259
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\watchers\watchers.go", "Go", 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 7, 37
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\GPU-device-plugin\watchers\watchers_test.go", "Go", 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 10, 68
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\README.md", "Markdown", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\VersionSet.xml", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\app_define.json", "JSON", 0, 0, 0, 0, 0, 0, 0, 0, 13, 0, 0, 0, 0, 13
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\at\at_deploy.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 23, 0, 0, 0, 0, 3, 5, 31
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\at\at_deploy.yml", "YAML", 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0, 5, 53
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\build.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 0, 4, 18, 102
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\build.yml", "YAML", 0, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 4, 48
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\buildinfo.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 3, 2, 16
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\cmc\openSource_x86.xml", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 24
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\cmc\upload_cmc.xml", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 24
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\cms_signature.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 55, 0, 0, 0, 0, 3, 6, 64
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\dependency.xml", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 1, 0, 8
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\hwp7s_signature.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 37, 0, 0, 0, 0, 4, 3, 44
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\opensource.xml", "XML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 6
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\build_x86.yml", "YAML", 0, 0, 0, 0, 65, 0, 0, 0, 0, 0, 0, 0, 5, 70
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\build_xpu_package.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 107, 0, 0, 0, 0, 3, 13, 123
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\acl_client\Dockerfile", "Docker", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 2, 3, 10
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\cuda_client\Dockerfile", "Docker", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 2, 3, 10
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\exporter\Dockerfile", "Docker", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 4, 6, 30
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\gpu_device_plugin\Dockerfile", "Docker", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 4, 5, 19
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\ci\xpu_pool\xpu_docker_build\npu_device_plugin\Dockerfile", "Docker", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 4, 19
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\client_update\acl-client-update.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 60, 0, 0, 0, 0, 28, 15, 103
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\client_update\cuda-client-update.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 68, 0, 0, 0, 0, 35, 12, 115
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\direct\CMakeLists.txt", "CMake", 0, 0, 0, 0, 0, 0, 0, 21, 0, 0, 0, 0, 4, 25
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\direct\acl\CMakeLists.txt", "CMake", 0, 0, 0, 0, 0, 0, 0, 33, 0, 0, 0, 0, 7, 40
+"c:\Users\admin\IdeaProjects\untitled\scheduler\xpu-pool-service\direct\make_lib_original.sh", "Shell Script", 0, 0, 0, 0, 0, 0, 33, 0, 0, 0, 0, 1, 7, 41
+"Total", "-", 0, 1773, 34, 177, 209, 63, 474, 73, 13, 62, 45, 277, 337, 3537
