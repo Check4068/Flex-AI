@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 
+	"huawei.com/xpu-device-plugin/pkg/log"
 	"huawei.com/xpu-device-plugin/pkg/plugin/config"
 	"huawei.com/xpu-device-plugin/pkg/plugin/types"
 	"huawei.com/xpu-device-plugin/pkg/plugin/util"
