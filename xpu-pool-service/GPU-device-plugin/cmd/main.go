@@ -138,7 +138,7 @@ func start() error {
 func main() {
 	// 定义命令行参数
 	// 设备拆分数量：每个物理设备可以拆分成多个逻辑设备
-	flag.UintVar(&config.DeviceSplitCount, "device-split-count", defaultDeviceSplitnum, "the number of devices to split"u
+	flag.UintVar(&config.DeviceSplitCount, "device-split-count", defaultDeviceSplitNum, "the number of devices to split")
 	// 节点名称：从环境变量 NODE_NAME 获取，如果没有则使用默认值
 	flag.StringVar(&config.NodeName, "node-name", os.Getenv("NODE_NAME"), "node name")
 	// 日志目录：日志文件的存储目录
