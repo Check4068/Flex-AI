@@ -17,7 +17,7 @@ type Utilization struct {
 
 type ProcessInfoV1 struct {
 	Pid           uint32
-	UsedGpuMemory uint32
+	UsedGpuMemory uint64
 }
 
 type ProcessUtilizationSample struct {
