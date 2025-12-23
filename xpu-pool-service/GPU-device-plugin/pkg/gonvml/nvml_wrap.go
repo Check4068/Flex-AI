@@ -142,6 +142,18 @@ nvmlReturn_t nvmlDeviceGetProcessUtilization(nvmlDevice_t device, nvmlProcessUti
     return (nvmlDeviceGetProcessUtilizationFunc == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetProcessUtilizationFunc(device, samples, sampleSize, timestamp);
 }
 
+nvmlReturn_t nvmlDeviceGetMultiGpuBoard(nvmlDevice_t device, unsigned int *multiGpuBool) {
+	return (nvmlDeviceGetMultiGpuBoard ==NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetMultiGpuBoard(device, multiGpuBool);
+}
+
+nvmlReturn_t nvmlDeviceGetTopologyCommonAncestor(nvmlDevice_t device1, nvmlDevice_t device2, nvmlGpuTopologyLevel_t *pathInfo) {
+	return (nvmlDeviceGetTopologyCommonAncestor == NULL) ? NVML_ERROR_FUNCTION_NOT_FOUND : nvmlDeviceGetTopologyCommonAncestor(device1, device2, pathInfo);
+}
+
+nvmlReturn_t nvmlDeviceGetTopologyNearestGpus(nvmlDevice_t device, nvmlGpuTopologyLevel_t level, unsigned int *count, nvmlDevice_t *deviceArray) {
+	return (nvmlDeviceGetTopologyNearestGpus == NULL) ?  : nvmlDeviceGetTopologyNearestGpus(device, level, count, deviceArray);
+}
+
 static void loadSymbol(const char *symbolName, void **symbolPtr) {
   *symbolPtr = dlsym(nvmlHandle, symbolName);
   if (!*symbolPtr) {
@@ -166,7 +178,7 @@ nvmlReturn_t loadDlFunction(void) {
   loadSymbol("nvmlDeviceGetName", (void**)(&nvmlDeviceGetNameFunc));
   loadSymbol("nvmlDeviceGetUUID", (void**)(&nvmlDeviceGetUUIDFunc));
   loadSymbol("nvmlDeviceGetIndex", (void**)(&nvmlDeviceGetIndexFunc));
-  loadSymbol("nvmlRegisterEvents", (void**)(&nvmlRegisterEventsFunc));
+  loadSymbol("nvmlDeviceRegisterEvents", (void**)(&nvmlDeviceRegisterEventsFunc));
   loadSymbol("nvmlEventSetCreate", (void**)(&nvmlEventSetCreateFunc));
   loadSymbol("nvmlEventSetWait_v2", (void**)(&nvmlEventSetWaitFunc));
   loadSymbol("nvmlEventSetFree", (void**)(&nvmlEventSetFreeFunc));
@@ -202,11 +214,11 @@ import "C"
 var errNvmlDlLoaded = errors.New("could not load nvml library")
 
 type nvmlDevice struct {
-	handle C.nvmlDevice_t
+	Handle C.nvmlDevice_t
 }
 
 type nvmlEventSet struct {
-	handle C.nvmlEventSet_t
+	Handle C.nvmlEventSet_t
 }
 
 func errorString(ret C.nvmlReturn_t) error {
@@ -250,7 +262,7 @@ func nvmlShutdownWrapper() NvmlRetType {
 }
 
 func nvmlInitWithFlagsWrapper(Flags uint32) NvmlRetType {
-	cFlags, _ := (C.unit)(Flags), cgoAllocsUnknown
+	cFlags, _ := (C.uint)(Flags), cgoAllocsUnknown
 	return NvmlRetType(C.nvmlInitWithFlags(cFlags))
 }
 
@@ -262,12 +274,12 @@ func nvmlDeviceGetCountWrapper(DeviceCount *uint32) NvmlRetType {
 func nvmlSystemGetDriverVersionWrapper(Version *byte, Length uint32) NvmlRetType {
 	cVersion, _ := (*C.char)(unsafe.Pointer(Version)), cgoAllocsUnknown
 	cLength, _ := (C.uint)(Length), cgoAllocsUnknown
-	return NvmlRetType(C.nvmlSystemGetDriverVersion(cVersion, cLength))
+	return (NvmlRetType)(C.nvmlSystemGetDriverVersion(cVersion, cLength))
 }
 
 func nvmlSystemGetCudaDriverVersionWrapper(CudaDriverVersion *int32) NvmlRetType {
 	cCudaDriverVersion, _ := (*C.int)(unsafe.Pointer(CudaDriverVersion)), cgoAllocsUnknown
-	return NvmlRetType(C.nvmlSystemGetCudaDriverVersion(cCudaDriverVersion))
+	return (NvmlRetType)(C.nvmlSystemGetCudaDriverVersion(cCudaDriverVersion))
 }
 
 func nvmlDeviceGetHandleByIndexWrapper(Index uint32, Device *nvmlDevice) NvmlRetType {
@@ -279,7 +291,7 @@ func nvmlDeviceGetHandleByIndexWrapper(Index uint32, Device *nvmlDevice) NvmlRet
 func nvmlDeviceGetHandleByUUIDWrapper(Uuid string, Device *nvmlDevice) NvmlRetType {
 	cUuid, _ := unPackPCharString(Uuid)
 	cDevice, _ := (*C.nvmlDevice_t)(unsafe.Pointer(Device)), cgoAllocsUnknown
-	return NvmlRetType(C.nvmlDeviceGetHandleByUUID(cUuid, cDevice))
+	return NvmlRetType(C.nvmlDeviceGetHandleByUUIDHook(cUuid, cDevice))
 }
 
 func nvmlDeviceGetMemoryInfoWrapper(nvmlDevice nvmlDevice, memory *MemoryV2) NvmlRetType {
