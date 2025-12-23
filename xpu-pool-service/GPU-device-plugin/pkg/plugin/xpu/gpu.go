@@ -486,7 +486,7 @@ func parseNvidiaNumaInfo(index int, reader io.Reader) (int, error) {
 	}
 	target := fmt.Sprintf("GPU%d", index)
 	for scanner.Scan() {
-		tokens := strings.Split(strings.ReplaceAll(scanner.Text(), "\t", "\t"), "\t")
+		tokens := strings.Split(strings.ReplaceAll(scanner.Text(), "\t\t", "\t"), "\t")
 		if !strings.Contains(tokens[0], target) {
 			continue
 		}
