@@ -369,7 +369,7 @@ func setVxpuDevices(vxpuDevices types.VxpuDevices,
 }
 
 // GetAllVgpuInfo get all vgpu info of the node
-func (PidsServiceServerImpl) GetAllVxpuInfo(ctx context.Context, req *GetAllVgpuInfoRequest) (*GetAllVgpuInfoResponse, error) {
+func (PidsServiceServerImpl) GetAllVxpuInfo(ctx context.Context, req *GetAllVxpuInfoRequest) (*GetAllVxpuInfoResponse, error) {
 	period, err := strconv.Atoi(req.Period)
 	if err != nil || period < minPeriod || period > maxPeriod {
 		period = defaultPeriod
@@ -408,7 +408,7 @@ func (PidsServiceServerImpl) GetAllVxpuInfo(ctx context.Context, req *GetAllVgpu
 	if err != nil {
 		return nil, err
 	}
-	return &GetAllVgpuInfoResponse{VgpuInfos: string(jsonVgpuInfos)}, nil
+	return &GetAllVxpuInfoResponse{VxpuInfos: string(jsonVgpuInfos)}, nil
 }
 
 // Start run pids service
