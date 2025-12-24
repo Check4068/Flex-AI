@@ -74,9 +74,6 @@ void PidManager::ProcessEvent(inotify_event *event) {
   } else {
     return;
   }
-  if (string(event->name) == PIDS_CONFIG_NAME) {
-    int err = Refresh();
-  }
 }
 
 void PidManager::PidsConfigWatcherThread() {
@@ -113,6 +110,6 @@ void PidManager::PidsConfigWatcherThread() {
 #endif
   }
 
-  int ret = inotify_rm_watch(fd, wd);
-  ret = close(fd);
+  inotify_rm_watch(fd, wd);
+  close(fd);
 }
