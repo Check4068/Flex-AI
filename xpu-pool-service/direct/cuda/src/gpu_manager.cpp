@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <nvml_compat.h>
 #include "gpu_manager.h"
+#include "log.h"
 
 using namespace xpu;
 
