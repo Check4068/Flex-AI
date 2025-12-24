@@ -24,7 +24,7 @@ int FillProcMem(VxpuInfo &info, PidManager &pids, nvmlDevice_t dev) {
     }
     auto &proc = info.processes[pid];
     proc.memory = pidInfo.usedGpuMemory;
-    info.memory += proc.usedGpuMemory;
+    info.memory += pidInfo.usedGpuMemory;
   }
   return RET_SUCC;
 }
@@ -33,7 +33,7 @@ int FillProcCore(VxpuInfo &info, PidManager &pids, nvmlDevice_t dev, size_t time
   nvmlProcessUtilizationSample_t procInfos[MAX_PIDS] = {};
   uint32_t sampleSize = MAX_PIDS;
   auto ret = nvmlDeviceGetProcessUtilization(dev, procInfos, &sampleSize, timestamp);
-  if (ret == NVML_ERR_NOT_FOUND) {
+  if (ret == NVML_ERROR_NOT_FOUND) {
     return RET_SUCC;
   }
   if (ret != NVML_SUCCESS) {
@@ -53,7 +53,7 @@ int FillProcCore(VxpuInfo &info, PidManager &pids, nvmlDevice_t dev, size_t time
   return RET_SUCC;
 }
 
-int FillVgpuInfo(VxpuInfo &info, nvmlDevice_t dev) {
+int FillVgpuInfo(VxpuInfo &info, nvmlDevice_t &dev) {
   nvmlReturn_t ret = nvmlDeviceGetHandleByIndex(info.id, &dev);
   if (ret != NVML_SUCCESS) {
     return RET_FAIL;
@@ -75,7 +75,7 @@ int FillProcInfo(VxpuInfo &info, nvmlDevice_t dev, PidManager &pids, size_t time
   if (ret != RET_SUCC) {
     return ret;
   }
-  return FillProcCore(info, pids, dev, timestamp);
+  ret = FillProcCore(info, pids, dev, timestamp);
   if (ret != RET_SUCC) {
     return ret;
   }
@@ -90,13 +90,13 @@ int CudaMonitorMain(int argc, char *argv[]) {
   if (ParseArgs(args, argc, argv) != RET_SUCC) {
     return RET_FAIL;
   }
-  const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+  const auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
     std::chrono::system_clock::now().time_since_epoch() - std::chrono::seconds(args.period));
 
   if (cuInit(0) != CUDA_SUCCESS) {
     return RET_FAIL;
   }
-  if (filesystem::exists(pids.PidsDir())) {
+  if (filesystem::exists(pids.PidsPath())) {
     if (pids.Refresh() != RET_SUCC) {
       return RET_FAIL;
     }
@@ -116,7 +116,7 @@ int CudaMonitorMain(int argc, char *argv[]) {
     if (ret != RET_SUCC) {
       return ret;
     }
-    ret = FillProcInfo(vgpu, dev, pids, timestamp);
+    ret = FillProcInfo(vgpu, dev, gpu.PidsMap(), timestamp.count());
     if (ret != RET_SUCC) {
       return ret;
     }
@@ -131,5 +131,9 @@ int CudaMonitorMain(int argc, char *argv[]) {
 }
 }
 
-
+#ifdef UNIT_TEST
+int main(int argc, char *argv[]) {
+  return xpu::CudaMonitorMain(argc, argv);
+}
+#endif
 
