@@ -15,8 +15,9 @@ int GpuCoreLimiter::Initialize()
 
 void GpuCoreLimiter::ComputingPowerLimiter()
 {
-  if (!config_.LimitComputingPower()) return;
-
+  if (!config_.LimitComputingPower()) {
+    return
+  }
   int delay = GetDelay(gpu_.CurrentDevice());
   if (delay != 0) {
     std::this_thread::sleep_for(std::chrono::microseconds(delay));
@@ -86,6 +87,9 @@ void GpuCoreLimiter::ComputingPowerWatcherThread()
     for (int i = 0; i < devCnt; i++) {
       UpdateDelay(i);
     }
+#ifdef UNIT_TEST
+    break;
+#endif
   }
 }
 
