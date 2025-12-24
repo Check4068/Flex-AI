@@ -3,6 +3,7 @@
 #include "cuda_resource_limiter.h"
 #include "hook_helper.h"
 #include "file_lock.h"
+#include "log.h"
 
 static std::unordered_map<void *, void*> g_hookedProc = {
   PROC_ADDR_PAIR(cuDriverGetVersion),
