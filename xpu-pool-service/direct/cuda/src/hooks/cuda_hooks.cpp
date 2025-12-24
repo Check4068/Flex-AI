@@ -239,7 +239,7 @@ CUresult FUNC_HOOK_BEGIN(cuMipmappedArrayCreate, CUmipmappedArray *pHandle, cons
   return original(pHandle, pMipmappedArrayDesc, numMipmapLevels);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem_v2, unsigned int *bytes, CUdevice dev)
+CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem_v2, size_t *bytes, CUdevice dev)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     *bytes = CudaResourceLimiter::Instance().MemoryQuota();
     return CUDA_SUCCESS;
@@ -247,7 +247,7 @@ CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem_v2, unsigned int *bytes, CUdevice dev)
   return original(bytes, dev);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem, size_t *bytes, CUdevice dev)
+CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem, unsigned int *bytes, CUdevice dev)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     *bytes = CudaResourceLimiter::Instance().MemoryQuota();
     return CUDA_SUCCESS;
