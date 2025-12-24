@@ -9,15 +9,14 @@
 
 FileLock::FileLock(const std::string_view path, int operation) : held_(false)
 {
-    fd_ = open(std::string(path).data(), O_CREAT | O_RDONLY, 0600); // the perm of lock file is 0600
+    fd_ = open(path.data(), O_CREAT | O_RDONLY, 0); // the perm of lock file is 0600
     if (fd_ == -1) {
-        log_err("open {%s} failed, errno is {%d}, %s", path, strerror(errno));
         return;
     }
-    Acquire(operation);
+    Aquire(operation);
 }
 
-bool FileLock::Acquire(int operation)
+bool FileLock::Aquire(int operation)
 {
     /*
     * (1) The flock can block when anyone else holding the lock;
@@ -27,7 +26,6 @@ bool FileLock::Acquire(int operation)
     */
     int ret = flock(fd_, operation);
     if (ret) {
-        log_err("flock failed, fd {%d}, errno {%d}, %s", fd_, strerror(errno));
         return false;
     }
     held_ = true;
@@ -38,7 +36,6 @@ bool FileLock::Release()
 {
     int ret = flock(fd_, LOCK_UN);
     if (ret) {
-        log_err("unlock failed, fd {%d}, errno {%d}, %s", fd_, strerror(errno));
         return false;
     }
     held_ = false;
@@ -54,7 +51,6 @@ FileLock::~FileLock()
         Release();
     }
     if (close(fd_) == -1) {
-        log_err("close file failed, fd {%d}, errno is {%d}, %s", fd_, strerror(errno));
         return;
     }
 }
