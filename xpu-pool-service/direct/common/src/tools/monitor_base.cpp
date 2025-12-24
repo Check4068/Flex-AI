@@ -22,21 +22,21 @@ static void Usage()
     cerr << endl;
 }
 
-int ParseArgs(Args& args, int argc, char const* argv[])
+int ParseArgs(Args &args, int argc, char *const argv[])
 {
     int nextOption;
     int tmpValue;
-    const char* const shortOptions = "o:p:h";
+    const char *const shortOptions = "o:p:h";
     const struct option longOptions[] = {
-        {"output", required_argument, nullptr, 'o'},
-        {"period", required_argument, nullptr, 'p'},
-        {"help", no_argument, nullptr, 'h'},
-        {nullptr, 0, nullptr, 0}
+        {"output", 1, nullptr, 'o'},
+        {"period", 1, nullptr, 'p'},
+        {"help", 0, nullptr, 'h'},
+        {nullptr, 0, nullptr, 0},
     };
 
     while ((nextOption = getopt_long(argc, argv, shortOptions, longOptions, nullptr)) != -1) {
         switch (nextOption) {
-            case 'o': {
+            case 'o': 
                 if (optarg == string_view("json")) {
                     args.format = OutputFormat::JSON;
                 } else if (optarg == string_view("table")) {
@@ -47,8 +47,7 @@ int ParseArgs(Args& args, int argc, char const* argv[])
                     return RET_FAIL;
                 }
                 break;
-            }
-            case 'p': {
+            case 'p': 
                 tmpValue = atoi(optarg);
                 if (tmpValue >= PERIOD_MIN && tmpValue <= PERIOD_MAX) {
                     args.period = tmpValue;
@@ -58,16 +57,11 @@ int ParseArgs(Args& args, int argc, char const* argv[])
                     return RET_FAIL;
                 }
                 break;
-            }
             case 'h':
-                Usage();
-                return RET_FAIL;
-            default:
                 Usage();
                 return RET_FAIL;
         }
     }
     return RET_SUCC;
 }
-
-} // namespace xpu
+}
