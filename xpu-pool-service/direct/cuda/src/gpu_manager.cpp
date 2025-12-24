@@ -3,16 +3,17 @@
 #include <sys/time.h>
 #include <nvml_compat.h>
 #include "gpu_manager.h"
+#include "log.h"
 
 using namespace xpu;
 
 int GpuManager::InitXpu()
 {
-  static decltype(cuInit) *const rawCuinit = reinterpret_cast<decltype(cuInit) *>(dlsym(RTLD_NEXT, "cuInit"));
-  if (rawCuinit == nullptr) {
+  static decltype(cuInit) *const rawCuInit = reinterpret_cast<decltype(cuInit) *>(dlsym(RTLD_NEXT, "cuInit"));
+  if (rawCuInit == nullptr) {
     return RET_FAIL;
   }
-  CUresult ret = rawCuinit(0);
+  CUresult ret = rawCuInit(0);
   if (ret != CUDA_SUCCESS) {
     return RET_FAIL;
   }
@@ -80,7 +81,7 @@ int GpuManager::InitDeviceMap() {
   return RET_SUCC;
 }
 
-int GpuManager::MemoryUsed(size_t &used) {
+int GpuManager::MemoryUsed(size_t& used) {
   nvmlDevice_t dev = GetCurrNvmlHandle();
   if (dev == GpuManager::INVALID_NVML_HANDLE) {
     return RET_FAIL;
@@ -103,7 +104,7 @@ int GpuManager::MemoryUsed(size_t &used) {
   return RET_SUCC;
 }
 
-int GpuManager::ComputingPowerUsed(int idx, unsigned int &used) {
+int GpuManager::ComputingPowerUsed(int idx, unsigned int& used) {
   nvmlDevice_t dev = GetNvmlHandle(idx);
   if (dev == GpuManager::INVALID_NVML_HANDLE) {
     return RET_FAIL;

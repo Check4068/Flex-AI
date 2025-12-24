@@ -1,8 +1,9 @@
+#include "cuda_resource_limiter.h"
+#include "log.h"
+
 using namespace xpu;
 
-#include "cuda_resource_limiter.h"
-
-CudaResourceLimiter& CudaResourceLimiter::Instance()
+CudaResourceLimiter &CudaResourceLimiter::Instance()
 {
   static CudaResourceLimiter limiter;
   return limiter;

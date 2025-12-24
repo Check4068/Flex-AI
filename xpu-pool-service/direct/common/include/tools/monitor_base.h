@@ -19,6 +19,7 @@ enum class OutputFormat : char {
 };
 
 enum class VxpuType : char {
+    NONE = '\0',
     VGPU = 'G',
     VNPU = 'N',
 };
@@ -33,23 +34,22 @@ struct Args {
     OutputFormat format = OutputFormat::TABLE;
 };
 
-int ParseArgs(Args& args, int argc, char const *argv[]);
+int ParseArgs(Args &args, int argc, char *const argv[]);
 
 struct VxpuFormatter {
-struct VxpuFormatter {
-    OutputFormat format = OutputFormat::NONE;
+    OutputFormat format_ = OutputFormat::NONE;
 
-    constexpr auto parse(fmt::format_parse_context& ctx)
+    constexpr auto parse(fmt::format_parse_context &ctx)
     {
-        for (auto it = ctx.begin(); it != ctx.end(); ++it) {
-            if (*it == 'j') {
-                format = OutputFormat::JSON;
-            } else if (*it == 't') {
-                format = OutputFormat::TABLE;
+        for (auto it = ctx.begin(); it != ctx.end(); it++) {
+            if (*it == 'j' || *it == 'j') {
+                format_ = OutputFormat(*it);
+            } else if (*it == '}') {
+                return it;
             } else {
                 ctx.on_error("invalid output format");
+                return it;
             }
-            return it;
         }
         return ctx.end();
     }
@@ -62,11 +62,11 @@ struct ProcessInfo {
 
 struct VxpuInfo {
     VxpuType type;
-    uint32_t id = 0;
+    uint32_t id;
+    uint32_t coreQuota;
     uint32_t core = 0;
-    uint32_t coreQuota = 0;
     size_t memory = 0;
-    size_t memoryQuota = 0;
+    size_t memoryQuota;
     std::map<uint32_t, ProcessInfo> processes;
 
     VxpuInfo(ResourceConfig &config, VxpuType type, int32_t id) : type(type), id(id)
@@ -84,7 +84,7 @@ struct VxpuInfo {
     }
 
 TESTABLE_PRIVATE:
-    VxpuInfo(VxpuType type) : type(type), coreQuota(PERCENT_MAX), memoryQuota(0) {}
+    VxpuInfo(VxpuType type): type(type), coreQuota(PERCENT_MAX), memoryQuota(0) {}
 };
 
 struct ContainerVxpuInfo {
@@ -97,20 +97,20 @@ struct ContainerVxpuInfo {
 
 }// namespace xpu
 template <>
-class fmt::formatter<std::pair<uint32_t, xpu::ProcessInfo>> : public xpu::VxpuFormatter {
+class fmt::formatter<std::pair<const uint32_t, xpu::ProcessInfo>> : public xpu::VxpuFormatter {
 public:
     template <typename Context>
-    auto format(const std::pair<uint32_t, xpu::ProcessInfo> &info, Context &ctx) const
+    auto format(const std::pair<const uint32_t, xpu::ProcessInfo> &info, Context &ctx) const
     {
         if (format_ == xpu::OutputFormat::JSON) {
             return format_to(ctx.out(),
-                "{{\"pid\": {:d}, \"core\": {:d}, \"memory\": {:d}}}",
+                "{{\"pid\": {}, \"core\": {}, \"memory\": {}}}",
                 info.first,
                 info.second.core,
                 info.second.memory);
         } else {
             return format_to(ctx.out(),
-                "pid: {:d}, core usage: {:d}%, memory usage: {:d}MB",
+                "pid {}, core usage {:02}%, memory usage {:6}MB",
                 info.first,
                 info.second.core,
                 info.second.memory / MEGABYTE);
@@ -127,16 +127,17 @@ public:
         if (format_ == xpu::OutputFormat::JSON) {
             return format_to(ctx.out(),
                 "{{\"device\": {}, \"core\": {}, \"core_quota\": {}, \"memory\": {}, \"memory_quota\": {},\n"
-                "\"processes\": [{}]}}",
+                "\"processes\": [{:j}]}}",
                 info.id,
+                info.core,
                 info.coreQuota,
                 info.memory,
                 info.memoryQuota,
                 fmt::join(info.processes, ",\n"));
         } else {
             return format_to(ctx.out(),
-                "v{}PU {} usage: {:02}%, limit: {:02}%, memory usage: {:6}/{}MB\n{:t}",
-                char(info.type)
+                "v{}PU {} usage {:02}%, limit {:02}%, memory usage {:6}/{}MB\n{:t}",
+                char(info.type),
                 info.id,
                 info.core,
                 info.coreQuota,
@@ -159,8 +160,8 @@ public:
                 char(info.type),
                 fmt::join(info.vxpus, ",\n"));
         } else {
-            return format_to(ctx.out(),
-                "v{}PU num: {}\n{:t}", char(info.type), info.vxpus.size(), fmt::join(info.vxpus, "\n"));
+            return format_to(
+                ctx.out(), "v{}PU num: {}\n{:t}", char(info.type), info.vxpus.size(), fmt::join(info.vxpus, "\n"));
         }
     }
 };

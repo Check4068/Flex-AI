@@ -11,7 +11,7 @@ public:
     FileLock(const std::string_view path, int operation);
     FileLock(const FileLock& other) = delete;
     FileLock& operator=(const FileLock& other) = delete;
-    FileLock(FileLock&& other) noexcept : fd_(other.fd_), held_(other.held_)
+    FileLock(FileLock&& other) noexcept: fd_(other.fd_), held_(other.held_)
     {
         other.fd_ = INVALID_FD;
         other.held_ = false;
@@ -25,7 +25,7 @@ public:
     }
     ~FileLock();
 
-    bool Acquire();
+    bool Aquire(int operation);
     bool Release();
     bool Held() const
     {

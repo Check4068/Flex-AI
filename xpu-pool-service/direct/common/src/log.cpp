@@ -1,7 +1,7 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
-#include <string>
+#include <fstream>
 #include <vector>
 #include <filesystem>
 #include <iostream>
@@ -30,7 +30,7 @@ std::string GetContainerIDFromCgroup(const std::string &filePath)
 
     std::smatch match;
     if (std::regex_search(cgroupData, match, containerIdPattern)) {
-        return match[0].str();
+        return match.str(0);
     } else {
         std::cerr << "Get container id failed" << std::endl;
     }
@@ -45,7 +45,7 @@ void LogToFile(const std::string &logdir, std::shared_ptr<spdlog::logger> &logge
     std::string containerId = GetContainerIDFromCgroup(FilePath).empty() ? "nocontainer" : GetContainerIDFromCgroup(FilePath).substr(0, CNTR_ID_CUT_LEN);
     pid_t pid = getpid();
     std::string fileName = logdir + containerId + "-" + std::to_string(pid) + ".log";
-    log->sinks().push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(fileName, 1024 * 1024 * 5, 10));
+    logger->sinks().push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(fileName, 1024 * 1024 * 5, 10));
 }
 
 void logInit(const std::string &loggerName, const std::string &sourceId)
@@ -53,7 +53,7 @@ void logInit(const std::string &loggerName, const std::string &sourceId)
     setenv("SPDLOG_LEVEL", SPDLOG_LEVEL_NAME_WARNING.data(), 0);
     std::shared_ptr<spdlog::logger> xpuLogger;
     xpuLogger = std::make_shared<spdlog::logger>(loggerName + "-" + sourceId);
-    xpuLogger->sinks().push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+    xpuLogger->sinks().push_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
     const std::string logdir = "/var/log/xpu/";
     if (fs::exists(logdir) && fs::is_directory(logdir)) {
         LogToFile(logdir, xpuLogger);

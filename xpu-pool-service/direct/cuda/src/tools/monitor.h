@@ -5,13 +5,13 @@
 #include "gpu_manager.h"
 
 namespace xpu {
-int FillProcMem(Vxpuinfo &info, PidManager &pids, nvmlDevice_t dev);
+int FillProcMem(VxpuInfo &info, PidManager &pids, nvmlDevice_t dev);
 
-int FillProcCore(Vxpuinfo &info, PidManager &pids, nvmlDevice_t dev, size_t timestamp);
+int FillProcCore(VxpuInfo &info, PidManager &pids, nvmlDevice_t dev, size_t timestamp);
 
-int FillVgpuinfo(Vxpuinfo &info, nvmlDevice_t dev);
+int FillVgpuInfo(VxpuInfo &info, nvmlDevice_t &dev);
 
-int FillProcInfo(Vxpuinfo &info, nvmlDevice_t dev, PidManager &pids, size_t timestamp);
+int FillProcInfo(VxpuInfo &info, nvmlDevice_t dev, PidManager &pids, size_t timestamp);
 
 int CudaMonitorMain(int argc, char *argv[]);
 }
