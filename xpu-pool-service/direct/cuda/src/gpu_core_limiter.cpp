@@ -1,4 +1,5 @@
 #include "gpu_core_limiter.h"
+#include "log.h"
 
 using namespace xpu;
 
