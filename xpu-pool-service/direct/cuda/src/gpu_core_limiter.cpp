@@ -17,7 +17,7 @@ int GpuCoreLimiter::Initialize()
 void GpuCoreLimiter::ComputingPowerLimiter()
 {
   if (!config_.LimitComputingPower()) {
-    return
+    return;
   }
   int delay = GetDelay(gpu_.CurrentDevice());
   if (delay != 0) {
