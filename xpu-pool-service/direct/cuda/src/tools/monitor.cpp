@@ -4,6 +4,7 @@
 #include <map>
 #include <getopt.h>
 #include "resource_config.h"
+#include "log.h"
 
 using namespace std;
 
@@ -131,7 +132,7 @@ int CudaMonitorMain(int argc, char *argv[]) {
 }
 }
 
-#ifdef UNIT_TEST
+#ifndef UNIT_TEST
 int main(int argc, char *argv[]) {
   return xpu::CudaMonitorMain(argc, argv);
 }
