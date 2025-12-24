@@ -15,7 +15,7 @@ import (
 	"unsafe"
 )
 
-// #cgo CFLAGS: -I /usr/local/cuda-11.8/targets/x86_64-linux/include -DNO_NVML_UNVERSIONED_FUNC_DEFS=1 -fstack-protector-all
+// #cgo CFLAGS: -I /usr/local/cuda/targets/x86_64-linux/include -DNVML_NO_UNVERSIONED_FUNC_DEFS=1 -fstack-protector-all
 // #cgo LDFLAGS: -ldl
 /*
 #include <stddef.h>
@@ -24,7 +24,7 @@ import (
 #include <stdio.h>
 #include "nvml.h"
 
-const char *nvmlLibraryName = "libnvidia-ml.so.1";
+const char *defaultNvmlLibraryName = "libnvidia-ml.so.1";
 void *nvmlHandle; // Handle for dynamically loaded libnvidia-ml.so
 
 // Define the function we need .
@@ -44,7 +44,7 @@ typedef nvmlReturn_t (*NvmlEventSetCreateFunc)(nvmlEventSet_t *set);
 typedef nvmlReturn_t (*NvmlEventSetWaitFunc)(nvmlEventSet_t set, nvmlEventData_t * data, unsigned int timeoutms);
 typedef nvmlReturn_t (*NvmlEventSetFreeFunc)(nvmlEventSet_t set);
 typedef nvmlReturn_t (*NvmlDeviceGetUtilizationRatesFunc)(nvmlDevice_t device, nvmlUtilization_t *utilization);
-typedef nvmlReturn_t (*NvmlDeviceGetComputeRunningProcessesFunc)(nvmlDevice_t device, unsigned int* infoSize, nvmlProcessInfo_v2_t* infos);
+typedef nvmlReturn_t (*NvmlDeviceGetComputeRunningProcessesFunc)(nvmlDevice_t device, unsigned int* infoSize, nvmlProcessInfo_v1_t* infos);
 typedef nvmlReturn_t (*NvmlDeviceGetProcessUtilizationFunc)(nvmlDevice_t device, nvmlProcessUtilizationSample_t* samples, unsigned int* sampleSize, unsigned long long timestamp);
 typedef nvmlReturn_t (*NvmlDeviceGetMultiGpuBoardFunc)(nvmlDevice_t device, unsigned int *multiGpuBool);
 typedef nvmlReturn_t (*NvmlDeviceGetTopologyCommonAncestorFunc)(nvmlDevice_t device1, nvmlDevice_t device2, nvmlGpuTopologyLevel_t *pathInfo);
@@ -94,11 +94,7 @@ nvmlReturn_t nvmlShutdown() {
 }
 
 const char* nvmlErrorString(nvmlReturn_t result) {
-    if (nvmlErrorStringFunc == NULL) {
-        fprintf(stderr, "Could not load function nvmlErrorString from nvml.so\n");
-        return "NVML_ERROR_FUNCTION_NOT_FOUND";
-    }
-    return nvmlErrorStringFunc(result);
+    return (nvmlErrorStringFunc == NULL) ? "NVML_ERROR_FUNCTION_NOT_FOUND" : nvmlErrorStringFunc(result);
 }
 
 nvmlReturn_t nvmlSystemGetDriverVersion(char *version, unsigned int length) {
@@ -266,7 +262,7 @@ func errorString(ret C.nvmlReturn_t) error {
 		return nil
 	}
 	if ret == C.NVML_ERROR_LIBRARY_NOT_FOUND || C.nvmlHandle == nil {
-		log.Printf("Can't load function nvmlErrorString from nvml.so")
+		log.Println("Can't load function nvmlErrorString from nvml.so")
 		return errNvmlDlLoaded
 	}
 	err := C.GoString(C.nvmlErrorString(ret))
@@ -291,9 +287,8 @@ func loadNvmlSo() error {
 	err := errorString(C.loadDlFunction())
 	if err != nil {
 		log.Println("loadNvmlSo failed:", err)
-		return err
 	}
-	return nil
+	return err
 }
 
 func unloadNvmlSo() error {
@@ -320,7 +315,7 @@ func nvmlDeviceGetCountWrapper(DeviceCount *uint32) NvmlRetType {
 
 func nvmlSystemGetDriverVersionWrapper(Version *byte, Length uint32) NvmlRetType {
     cVersion, _ := (*C.char)(unsafe.Pointer(Version)), cgoAllocsUnknown
-    cLength, _ := C.uint(Length), cgoAllocsUnknown
+    cLength, _ := (C.uint)(Length), cgoAllocsUnknown
     return (NvmlRetType)(C.nvmlSystemGetDriverVersion(cVersion, cLength))
 }
 
@@ -369,8 +364,8 @@ func nvmlDeviceGetIndexWrapper(nvmlDevice nvmlDevice, Index *uint32) NvmlRetType
 
 func nvmlDeviceRegisterEventsWrapper(nvmlDevice nvmlDevice, EventTypes uint64, Set nvmlEventSet) NvmlRetType {
     cnvmlDevice, _ := *(*C.nvmlDevice_t)(unsafe.Pointer(&nvmlDevice)), cgoAllocsUnknown
-    cEventTypes, _ := C.ulonglong(EventTypes), cgoAllocsUnknown
-    cSet, _ := C.nvmlEventSet_t(unsafe.Pointer(&Set)), cgoAllocsUnknown
+    cEventTypes, _ := (C.ulonglong)(EventTypes), cgoAllocsUnknown
+    cSet, _ := *(*C.nvmlEventSet_t)(unsafe.Pointer(&Set)), cgoAllocsUnknown
     return NvmlRetType(C.nvmlDeviceRegisterEvents(cnvmlDevice, cEventTypes, cSet))
 }
 
@@ -401,14 +396,14 @@ func nvmlDeviceGetComputeRunningProcessesWrapper(nvmlDevice nvmlDevice, InfoCoun
     cnvmlDevice, _ := *(*C.nvmlDevice_t)(unsafe.Pointer(&nvmlDevice)), cgoAllocsUnknown
     cInfoCount, _ := (*C.uint)(unsafe.Pointer(InfoCount)), cgoAllocsUnknown
     cInfos, _ := (*C.nvmlProcessInfo_v1_t)(unsafe.Pointer(Infos)), cgoAllocsUnknown
-    return NvmlRetType(C.nvmlDeviceGetComputeRunningProcesses(cnvmlDevice, cInfoCount, cInfos))
+    return NvmlRetType(C.nvmlDeviceGetComputeRunningProcesses_v1(cnvmlDevice, cInfoCount, cInfos))
 }
 
-func nvmlDeviceGetProcessUtilizationWrapper(nvmlDevice nvmlDevice, Utilization *ProcessUtilizationSample, ProcessSamplesCount uint32, LastSeenTimeStamp uint64) NvmlRetType {
-    cnvmlDevice, _ := C.nvmlDevice_t(unsafe.Pointer(&nvmlDevice)), cgoAllocsUnknown
+func nvmlDeviceGetProcessUtilizationWrapper(nvmlDevice nvmlDevice, Utilization *ProcessUtilizationSample, ProcessSamplesCount *uint32, LastSeenTimeStamp uint64) NvmlRetType {
+    cnvmlDevice, _ := *(*C.nvmlDevice_t)(unsafe.Pointer(&nvmlDevice)), cgoAllocsUnknown
     cUtilization, _ := (*C.nvmlProcessUtilizationSample_t)(unsafe.Pointer(Utilization)), cgoAllocsUnknown
-    cProcessSamplesCount, _ := C.uint(ProcessSamplesCount), cgoAllocsUnknown
-    cLastSeenTimeStamp, _ := C.ulonglong(LastSeenTimeStamp), cgoAllocsUnknown
+    cProcessSamplesCount, _ := (*C.uint)(unsafe.Pointer(ProcessSamplesCount)), cgoAllocsUnknown
+    cLastSeenTimeStamp, _ := (C.ulonglong)(LastSeenTimeStamp), cgoAllocsUnknown
     return NvmlRetType(C.nvmlDeviceGetProcessUtilization(cnvmlDevice, cUtilization, cProcessSamplesCount, cLastSeenTimeStamp))
 }
 
@@ -435,7 +430,7 @@ func nvmlDeviceGetTopologyNearestGpusWrapper(nvmlDevice nvmlDevice, Level GpuTop
 
 func nvmlDeviceGetTemperatureWrapper(nvmlDevice nvmlDevice, NvmlTemperatureGpu NvmlTemperatureSensors, temp *uint32) NvmlRetType {
     cnvmlDevice, _ := *(*C.nvmlDevice_t)(unsafe.Pointer(&nvmlDevice)), cgoAllocsUnknown
-    cnvmlTemperatureGpu, _ := C.nvmlTemperatureSensors_t(unsafe.Pointer(&NvmlTemperatureGpu)), cgoAllocsUnknown
+    cnvmlTemperatureGpu, _ := *(*C.nvmlTemperatureSensors_t)(unsafe.Pointer(&NvmlTemperatureGpu)), cgoAllocsUnknown
     ctemp, _ := (*C.uint)(unsafe.Pointer(temp)), cgoAllocsUnknown
     return NvmlRetType(C.nvmlDeviceGetTemperature(cnvmlDevice, cnvmlTemperatureGpu, ctemp))
 }
