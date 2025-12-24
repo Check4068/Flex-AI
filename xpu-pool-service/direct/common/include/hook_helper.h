@@ -10,8 +10,7 @@
     tracepoint \
     static decltype(function) * const original = \
         reinterpret_cast<decltype(function) *>(dlsym(RTLD_NEXT, #function)); \
-        \
-        {
+        { \
 
 #define FUNC_HOOK_END }}
 
