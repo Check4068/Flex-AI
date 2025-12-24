@@ -23,7 +23,7 @@ public:
     return devCnt_;
   }
   std::string_view ConfigPath() override {
-    return VGPU_ConfigPath();
+    return VGPU_ConfigPath;
   }
   PidManager &PidsMap() {
     return pid_;
