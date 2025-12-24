@@ -1,10 +1,10 @@
-#include <atomic.h>
+#include <atomic>
 #include <cuda.h>
 #include "cuda_resource_limiter.h"
 #include "hook_helper.h"
 #include "file_lock.h"
 
-static std::unordered_map<void *, void *> g_hookedProc = {
+static std::unordered_map<void *, void*> g_hookedProc = {
   PROC_ADDR_PAIR(cuDriverGetVersion),
   PROC_ADDR_PAIR(cuInit),
   PROC_ADDR_PAIR(cuGetProcAddress),
@@ -20,10 +20,10 @@ static std::unordered_map<void *, void *> g_hookedProc = {
   PROC_ADDR_PAIR(cuMemAllocManaged),
   PROC_ADDR_PAIR(cuMemAlloc_v2),
   PROC_ADDR_PAIR(cuMemAlloc),
-  PROC_ADDR_PAIR(cuMemAllocPitch),
   PROC_ADDR_PAIR(cuMemAllocPitch_v2),
-  PROC_ADDR_PAIR(cuArrayCreate),
+  PROC_ADDR_PAIR(cuMemAllocPitch),
   PROC_ADDR_PAIR(cuArrayCreate_v2),
+  PROC_ADDR_PAIR(cuArrayCreate),
   PROC_ADDR_PAIR(cuArray3DCreate),
   PROC_ADDR_PAIR(cuArray3DCreate_v2),
   PROC_ADDR_PAIR(cuMipmappedArrayCreate),
@@ -48,7 +48,7 @@ static std::unordered_map<void *, void *> g_hookedProc = {
 template <typename Integer1, typename Integer2>
 inline static constexpr Integer1 RoundUp(Integer1 n, Integer2 base)
 {
-  return (n % base ) ? (n + base - n % base) : n;
+  return (n % base) ? (n + base - (n % base)) : n;
 }
 
 inline static size_t CuarrayElementSize(int format) {
@@ -98,7 +98,7 @@ FUNC_HOOK_END
 CUresult FUNC_HOOK_BEGIN(cuGetProcAddress, const char *symbol, void **pfn, int cudaVersion,
                            cuuint64_t flags)
   CudaResourceLimiter::Instance().Initialize();
-  viod *fnPtr = nullptr;
+  void *fnPtr = nullptr;
   CUresult ret = original(symbol, &fnPtr, cudaVersion, flags);
   auto pair = g_hookedProc.find(fnPtr);
   if (pair != g_hookedProc.end()) {
@@ -113,8 +113,8 @@ FUNC_HOOK_END
 CUresult FUNC_HOOK_BEGIN(cuGetProcAddress_v2, const char *symbol, void **pfn, int cudaVersion,
                            cuuint64_t flags, CUdriverProcAddressQueryResult *result)
   CudaResourceLimiter::Instance().Initialize();
-  viod *fnPtr = nullptr;
-  Curesult ret = original(symbol, &fnPtr, cudaVersion, flags, result);
+  void *fnPtr = nullptr;
+  CUresult ret = original(symbol, &fnPtr, cudaVersion, flags, result);
   auto pair = g_hookedProc.find(fnPtr);
   if (pair != g_hookedProc.end()) {
     *pfn = pair->second;
@@ -239,7 +239,7 @@ CUresult FUNC_HOOK_BEGIN(cuMipmappedArrayCreate, CUmipmappedArray *pHandle, cons
   return original(pHandle, pMipmappedArrayDesc, numMipmapLevels);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem, unsigned int *bytes, CUdevice dev)
+CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem, size_t *bytes, CUdevice dev)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     *bytes = CudaResourceLimiter::Instance().MemoryQuota();
     return CUDA_SUCCESS;
@@ -247,7 +247,7 @@ CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem, unsigned int *bytes, CUdevice dev)
   return original(bytes, dev);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem_v2, size_t *bytes, CUdevice dev)
+CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem_v2, unsigned int *bytes, CUdevice dev)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     *bytes = CudaResourceLimiter::Instance().MemoryQuota();
     return CUDA_SUCCESS;
@@ -255,7 +255,7 @@ CUresult FUNC_HOOK_BEGIN(cuDeviceTotalMem_v2, size_t *bytes, CUdevice dev)
   return original(bytes, dev);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuMemGetInfo, unsigned int *free, unsigned int *total)
+CUresult FUNC_HOOK_BEGIN(cuMemGetInfo_2, size_t *free, size_t *total)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     size_t used;
     int ret = CudaResourceLimiter::Instance().MemoryUsed(used);
@@ -269,7 +269,7 @@ CUresult FUNC_HOOK_BEGIN(cuMemGetInfo, unsigned int *free, unsigned int *total)
   return original(free, total);
 FUNC_HOOK_END
 
-CUresult FUNC_HOOK_BEGIN(cuMemGetInfo_v2, size_t *free, size_t *total)
+CUresult FUNC_HOOK_BEGIN(cuMemGetInfo, unsigned int *free, unsigned int *total)
   if (CudaResourceLimiter::Instance().LimitMemory()) {
     size_t used;
     int ret = CudaResourceLimiter::Instance().MemoryUsed(used);
