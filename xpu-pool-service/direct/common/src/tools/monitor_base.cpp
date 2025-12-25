@@ -58,6 +58,7 @@ int ParseArgs(Args &args, int argc, char *const argv[])
                 }
                 break;
             case 'h':
+            default:
                 Usage();
                 return RET_FAIL;
         }
