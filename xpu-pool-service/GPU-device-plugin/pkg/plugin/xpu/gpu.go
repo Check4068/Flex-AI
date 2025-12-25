@@ -226,7 +226,7 @@ func resolveDeviceName(deviceName string) string {
 		log.Fatalln("regexp compile failed: %s", err)
 		return strings.ReplaceAll(deviceName, " ", "")
 	}
-	nameSlice := strings.Split(strings.ReplaceAll(deviceName, " ", "-"), "_")
+	nameSlice := strings.Split(strings.ReplaceAll(deviceName, " ", "-"), "-")
 	for _, val := range nameSlice {
 		if regex.MatchString(val) {
 			return val
