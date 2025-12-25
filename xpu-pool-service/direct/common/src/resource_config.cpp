@@ -14,7 +14,7 @@ int ResourceConfig::Initialize()
 {
     // check if client running in container
     if (!filesystem::exists(xpu_.ConfigPath())) {
-        log_debug("no exist, client is running in host", xpu_.ConfigPath());
+        log_debug("{} no exist, client is running in host", xpu_.ConfigPath());
         return RET_SUCC;
     }
     return LoadVxpuConfig();
@@ -27,14 +27,14 @@ int ResourceConfig::ParseLineByConfigName(const string& line, const string& conf
     string::size_type pos = line.npos;
     pos = line.rfind(configName, 0);
     if (pos == line.npos) {
-        log_err("not found {%s}", configName);
+        log_err("not found {}", configName);
         return RET_FAIL;
     }
     valueStr = line.substr(configName.size() + 1);  // configName:
 
     value = stoul(valueStr);
     if (value > maxValue) {
-        log_err("parse {%s} failed, content {%s} overflow", configName, value);
+        log_err("parse {} failed, content {} overflow", configName, value);
         return RET_FAIL;
     }
     return RET_SUCC;
@@ -82,8 +82,8 @@ int ResourceConfig::LoadVxpuConfig()
     // if computingPower is 0, don't limit computingPower
     limitComputingPower_ = (computingPower_ != 0);
 
-    log_info("parse {%s} over, the configs are as follows: ", xpu_.ConfigPath());
-    log_info("limitMemory {%d}, limitComputingPower {%d}, memory {%lld}, computingPower {%d}",
+    log_info("parse {} over, the configs are as follows: ", xpu_.ConfigPath());
+    log_info("limitMemory {}, limitComputingPower {}, memory {}, computingPower {}",
         limitMemory_, limitComputingPower_, memory_, computingPower_);
     return RET_SUCC;
 }
