@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 BASE_VERSION='1.10.2'
 GOPATH=${GOPATH:-$(go env GOPATH)}
@@ -14,16 +14,16 @@ GCC_PATH=/usr/bin/gcc
 PLUGIN_NAME=huawei-xpu
 
 function clean() {
-  rm -rf ${BASE_PATH}/output/vc-controller-manager
-  rm -rf ${BASE_PATH}/output/vc-scheduler
-  rm -rf ${BASE_PATH}/output/*.so
+  rm -f "${BASE_PATH}"/output/vc-controller-manager
+  rm -f "${BASE_PATH}"/output/vc-scheduler
+  rm -f "${BASE_PATH}"/output/*.so
 }
 
 function build() {
   echo "Build start"
 
   export GO111MODULE=on
-  export PATH=${GOPATH}/bin:${PATH}
+  export PATH=$GOPATH/bin:$PATH
 
   cd "${TOP_DIR}"
   go mod tidy
@@ -34,9 +34,9 @@ function build() {
     CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv" \
        CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv" \
     CC=${GCC_PATH} CGO_ENABLED=1 \
-    go build -mod=mod -buildmode=pie -ldflags="-s -linkmode=external -extldflags=-Wl,-z,relro,-z,now
+    go build -mod=mod -buildmode=pie -ldflag "-s -linkmode=external -extldflags=-Wl,-z,relro,-z,now
     -X  '${PKG_PATH}/version.Built=${DATE}' -X '${PKG_PATH}/version.Version=${BASE_VERSION}'" \
-    -o vc-${name} ${CMD_PATH}/$name
+    -o vc-$name "${CMD_PATH}"/$name
   done
 
   CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv" \
