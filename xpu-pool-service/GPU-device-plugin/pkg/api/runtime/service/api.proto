@@ -4,7 +4,7 @@ option go_package = "./;service";
 
 service PidsService {
   rpc GetPids(GetPidsRequest) returns (GetPidsResponse) {}
-  rpc GetAllVgpuInfo(GetAllVxpuInfoRequest) returns (GetAllVxpuInfoResponse) {}
+  rpc GetAllVxpuInfo(GetAllVxpuInfoRequest) returns (GetAllVxpuInfoResponse) {}
 }
 
 message GetPidsRequest {
@@ -20,5 +20,5 @@ message GetAllVxpuInfoRequest {
 }
 
 message GetAllVxpuInfoResponse {
-  string VgpuInfos = 1;
+  string VxpuInfos = 1;
 }
