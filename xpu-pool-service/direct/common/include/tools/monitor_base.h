@@ -42,7 +42,7 @@ struct VxpuFormatter {
     constexpr auto parse(fmt::format_parse_context &ctx)
     {
         for (auto it = ctx.begin(); it != ctx.end(); it++) {
-            if (*it == 'j' || *it == 'j') {
+            if (*it == 't' || *it == 'j') {
                 format_ = OutputFormat(*it);
             } else if (*it == '}') {
                 return it;
