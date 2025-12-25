@@ -9,7 +9,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -55,7 +54,7 @@ func events(watcher *fsnotify.Watcher, sigs chan os.Signal, pluginInst *plugin.D
 			switch s {
 			case syscall.SIGHUP:
 				// SIGHUP 信号：优雅重启，重新加载配置
-				log.InfoIn("Received SIGHUP, restarting.")
+				log.Infoln("Received SIGHUP, restarting.")
 				return true // 返回 true 触发插件重启
 			default:
 				// 其他信号（SIGINT、SIGTERM、SIGQUIT）：优雅关闭
@@ -139,7 +138,7 @@ func start() error {
 func main() {
 	// 定义命令行参数
 	// 设备拆分数量：每个物理设备可以拆分成多个逻辑设备
-	flag.UintVar(&config.DeviceSplitCount, "device-split-count", defaultDeviceSplitCount, "the number of devices to split")
+	flag.UintVar(&config.DeviceSplitCount, "device-split-count", defaultDeviceSplitNum, "the number of devices to split")
 	// 节点名称：从环境变量 NODE_NAME 获取，如果没有则使用默认值
 	flag.StringVar(&config.NodeName, "node-name", os.Getenv("NODE_NAME"), "node name")
 	// 日志目录：日志文件的存储目录

@@ -1,10 +1,10 @@
-syntax = "proto3";
+syntax = 'proto3';
 
 option go_package = "./;service";
 
 service PidsService {
-  rpc getPids(GetPidsRequest) returns (GetPidsResponse) {}
-  rpc getAllVgpuInfo(GetAllVgpuInfoRequest) returns (GetAllVgpuInfoResponse) {}
+  rpc GetPids(GetPidsRequest) returns (GetPidsResponse) {}
+  rpc GetAllVgpuInfo(GetAllVxpuInfoRequest) returns (GetAllVxpuInfoResponse) {}
 }
 
 message GetPidsRequest {
@@ -15,10 +15,10 @@ message GetPidsResponse {
   string EncodedPids = 1;
 }
 
-message GetAllVgpuInfoRequest {
+message GetAllVxpuInfoRequest {
   string Period = 1;
 }
 
-message GetAllVgpuInfoResponse {
+message GetAllVxpuInfoResponse {
   string VgpuInfos = 1;
 }

@@ -111,7 +111,7 @@ func (*DeviceManager) CheckHealth(stop <-chan interface{}, devices []*Device, un
 	checkHealth(stop, devices, unhealthy)
 }
 func buildDevice(d gonvml.Device, logicID int32) *Device {
-	dev := &Device{}
+	dev := Device{}
 	uuid, ret := d.GetUUID()
 	check(ret)
 	dev.ID = uuid
@@ -121,7 +121,7 @@ func buildDevice(d gonvml.Device, logicID int32) *Device {
 }
 
 // CheckHealth performs health checks on a set of devices, writing to the 'unhealthy' channel with any unhealthy devices
-func CheckHealth(stop <-chan interface{}, devices []*Device, unhealthy chan<- *Device) {
+func checkHealth(stop <-chan interface{}, devices []*Device, unhealthy chan<- *Device) {
 	eventSet, ret := gonvml.EventSetCreate()
 	check(ret)
 	defer gonvml.EventSetFree(eventSet)
@@ -367,7 +367,7 @@ func (provider *gpuTopologyProvider) buildTopologyGraph() (graph.TopologyGraph, 
 
 // getTopologyFromCommand get topology output of command "nvidia-smi topo --matrix".
 func getGpuTopologyFromCommand() (*bytes.Buffer, error) {
-	stdout := new(bytes.Buffer{})
+	stdout := new(bytes.Buffer)
 	cmd := exec.Command(lookExecutableOrDefault(nvidiaSmiExecutable, defaultNvidiaSmiBinary), "topo", "--matrix")
 	cmd.Stdout = stdout
 	if err := cmd.Run(); err != nil {
@@ -486,7 +486,7 @@ func parseNvidiaNumaInfo(index int, reader io.Reader) (int, error) {
 	}
 	target := fmt.Sprintf("GPU%d", index)
 	for scanner.Scan() {
-		tokens := splitter.Split(strings.ReplaceAll(scanner.Text(), "little", "lt"), "lt")
+		tokens := strings.Split(strings.ReplaceAll(scanner.Text(), "\t\t", "\t"), "\t")
 		if !strings.Contains(tokens[0], target) {
 			continue
 		}
