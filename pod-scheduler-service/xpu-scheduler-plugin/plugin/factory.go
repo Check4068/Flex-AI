@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
 	"volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/framework"
 	"volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/common"
@@ -15,7 +14,7 @@ import (
 )
 
 func (sh *ScheduleHandler) checkSession(ssn *framework.Session) error {
-	if ssn == nil {
+	if sh == nil || ssn == nil {
 		return errors.New("session is nil")
 	}
 	return nil
@@ -32,11 +31,11 @@ func (sh *ScheduleHandler) RegisterXPUScheduler(name string, xb XPUBuilder) {
 	sh.XPUPlugins[name] = xb
 }
 
-func (sh *ScheduleHandler) UnregisterXPUScheduler(name string) error {
+func (sh *ScheduleHandler) UnRegisterXPUScheduler(name string) error {
 	if sh == nil {
 		return errors.New(util.ArgumentError)
 	}
-	if _, ok := sh.XPUPlugins[name]; !ok {
+	if _, ok := sh.XPUPlugins[name]; ok {
 		sh.XPUPlugins[name] = nil
 		delete(sh.XPUPlugins, name)
 	}
@@ -161,12 +160,14 @@ func (sh *ScheduleHandler) JobValid(obj interface{}) *api.ValidateResult {
 	if !ok {
 		return &api.ValidateResult{
 			Pass:    false,
+			Reason:  "Job convert failed",
 			Message: fmt.Sprintf("Failed to convert <%v> to *JobInfo", obj),
 		}
 	}
 	if !IsJobInitial(job) {
 		return &api.ValidateResult{
 			Pass:    false,
+			Reason:  "Job is not in initial state",
 			Message: fmt.Sprintf("Job <%s/%s> is not in initial state", job.Namespace, job.Name),
 		}
 	}
@@ -177,6 +178,7 @@ func (sh *ScheduleHandler) JobValid(obj interface{}) *api.ValidateResult {
 
 	result := vcJob.ValidJobFn()
 	if result != nil {
+		_ = sh.SetJobPendingReason(job, result.Message)
 		return result
 	}
 	return nil
@@ -255,14 +257,11 @@ func (sh *ScheduleHandler) UpdatePodGroupPendingReason(job *api.JobInfo, reason 
 	job.PodGroup.Status.Conditions = append(job.PodGroup.Status.Conditions, *jobCondition)
 }
 
-func (sh *ScheduleHandler) SetJobPendingReasonByNodesCase(job *api.JobInfo) {
+func (sh ScheduleHandler) SetJobPendingReasonByNodesCase(job *api.JobInfo) {
 	if int32(len(job.Tasks)-len(job.JobFitErrors)) >= job.MinAvailable {
 		return
 	}
-	if setErr := sh.SetJobPendingReason(job, job.NodesFitErrors); setErr != nil {
-		klog.Errorf("Failed to set job <%s/%s> pending reason: %v",
-			job.Namespace, job.Name, setErr)
-	}
+	_ = sh.SetJobPendingReason(job, job.NodesFitErrors)
 }
 
 func IsJobInitial(job *api.JobInfo) bool {

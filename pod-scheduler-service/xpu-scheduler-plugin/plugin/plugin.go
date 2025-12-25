@@ -27,7 +27,7 @@ type XPUSchedulerPlugin interface {
 	// ValidXPUJob check if the job part of xpu scheduler policy is valid.
 	ValidXPUJob() *api.ValidateResult
 	GetXPUDevicesFromNode(*api.NodeInfo) map[int]*common.XPUDevice
-	NodePredicateForTask(*SchedulerJob, *api.TaskInfo, *api.NodeInfo, *ScheduleHandler) (int, error)
+	NodePredicateForTask(*SchedulerJob, *api.TaskInfo, *api.NodeInfo, *ScheduleHandler) error
 	Allocate(*SchedulerJob, *api.TaskInfo, *api.NodeInfo, map[int]*common.XPUDevice) error
 	Deallocate(*api.TaskInfo, *api.NodeInfo) error
 }
@@ -65,7 +65,7 @@ func (sp *SchedulerPlugin) ValidXPUJob() *api.ValidateResult {
 }
 
 func getInUseDevice(inUseDeviceMap map[string][]common.ContainerDevice, annoName string, pod *v1.Pod) {
-	if inUseDeviceMap[annoName] == nil {
+	if inUseDeviceMap == nil {
 		err := errors.New(util.ArgumentError)
 		klog.V(util.LogErrorLevel).Infof("getInUseDevice err: %s", err.Error())
 		return
@@ -101,7 +101,7 @@ func (sp *SchedulerPlugin) GetXPUDevicesFromNode(node *api.NodeInfo) map[int]*co
 		getInUseDevice(inUseDeviceMap, sp.AssignedXPUsToPodAnno, pod)
 	}
 	for _, v := range xpuDevices {
-		if _, ok := inUseDeviceMap[v.Id]; !ok {
+		if _, ok := inUseDeviceMap[v.Id]; ok {
 			for _, x := range inUseDeviceMap[v.Id] {
 				v.UsedMemory += x.UsedMemory
 				v.UsedCores += x.UsedCores
@@ -126,7 +126,7 @@ func checkHandShake(node *api.NodeInfo, anno string) bool {
 		if err != nil {
 			klog.V(util.LogWarningLevel).Infof("time load location error: %v", err)
 		}
-		formertime, err := time.ParseInLocation("2006-01-02 15:04:05", strings.Split(handshake, "_")[1], loc)
+		formertime, err := time.ParseInLocation("2006.01.02 15:04:05", strings.Split(handshake, "_")[1], loc)
 		if err != nil {
 			klog.V(util.LogWarningLevel).Infof("Handshake time parse error: %v", err)
 			return false
@@ -146,16 +146,16 @@ func checkHandShake(node *api.NodeInfo, anno string) bool {
 // NodePredicateForTask evaluate whether node meet the task requirement based on different strategies in both
 // topology and non-topology scenarios
 func (sp *SchedulerPlugin) NodePredicateForTask(sJob *SchedulerJob, task *api.TaskInfo,
-	node *api.NodeInfo, sh *ScheduleHandler) (int, error) {
+	node *api.NodeInfo, sh *ScheduleHandler) error {
 	if sp == nil || sJob == nil || task == nil || len(node.Node.Annotations) == 0 {
 		err := errors.New(util.ArgumentError)
 		klog.V(util.LogErrorLevel).Infof("NodePredicateForTask err: %v", err.Error())
-		return api.Unschedulable, err
+		return err
 	}
 
 	xpuTask, ok := sJob.Tasks[task.UID]
 	if !ok {
-		return api.Unschedulable, fmt.Errorf("node predicte failed, task %s is not exist in job %s",
+		return fmt.Errorf("node predicte failed, task %s is not exist in job %s",
 			task.Name, sJob.Id)
 	}
 
@@ -170,23 +170,23 @@ func (sp *SchedulerPlugin) NodePredicateForTask(sJob *SchedulerJob, task *api.Ta
 		result := sJob.TopologyScheduleResult[task.UID]
 
 		if result == nil || result.NodeName != node.Name {
-			return api.Unschedulable, errors.New("different from the topology scheduling pre-allocation result")
+			return errors.New("different from the topology scheduling pre-allocation result")
 		}
-		return 0, nil
+		return nil
 	}
 
 	// node predicate for topology task
 	var score float64
 	fit, _, err := sp.calculateDecision(task.Pod, sh.getXPUDevicesOfNode(node.Name), &score)
 	if err != nil || !fit {
-		return api.Unschedulable, fmt.Errorf("%s predicate failed: no suitable devices, err: %v",
+		return fmt.Errorf("%s predicate failed: no suitable devices, err: %v",
 			sp.PluginName, err)
 	}
 	xpuTask.Lock()
 	xpuTask.ScoreMap[node.Name] = score
 	xpuTask.Unlock()
-	klog.V(util.LogDebugLevel).Infof("task[%v] Node[%s] score[%f]", task.Name, node.Name, score)
-	return 0, nil
+	klog.V(util.LogDebugLevel).Infof("task[%v] Node[%v] score[%v]", task.Name, node.Name, score)
+	return nil
 }
 
 // PerformTopologyAllocation Perform topology allocation for all tasks under sJob
@@ -258,7 +258,7 @@ func (sp *SchedulerPlugin) getPodDeviceFromAllocateXPUs(
 		}
 		if start+xpuNum > length {
 			klog.V(util.LogErrorLevel).Infof("getPodDeviceFromAllocateXPUs failed, insufficient number of xpu devices,"+
-				"request xpu number: %d, allocate %v", xpuNum, allocateXPUs)
+				"request xpu number: %d, allocate %v", start+xpuNum, allocateXPUs)
 			return ""
 		}
 		cds, err := getContainerDevices(allocateXPUs[start:start+xpuNum], xpuDevices)
@@ -273,7 +273,7 @@ func (sp *SchedulerPlugin) getPodDeviceFromAllocateXPUs(
 	return EncodePodDevices(selectDevices)
 }
 
-func (sp *SchedulerPlugin) getSlectXPUs(task *api.TaskInfo, xpuDevices map[int]*common.XPUDevice) string {
+func (sp *SchedulerPlugin) getSelectXPUs(task *api.TaskInfo, xpuDevices map[int]*common.XPUDevice) string {
 	fit, device, err := sp.calculateDecision(task.Pod, xpuDevices, nil)
 	if err != nil || !fit {
 		klog.V(util.LogErrorLevel).Infof("%s Allocate failed: no suitable devices was selected.",
@@ -307,7 +307,7 @@ func (sp *SchedulerPlugin) Allocate(sJob *SchedulerJob, task *api.TaskInfo,
 	node *api.NodeInfo, xpuDevices map[int]*common.XPUDevice) error {
 	if sJob == nil || sp == nil || task == nil || node == nil {
 		err := errors.New(util.ArgumentError)
-		klog.V(util.LogErrorLevel).Infof("%s Allocate err: %v", sp.PluginName, err.Error())
+		klog.V(util.LogErrorLevel).Infof("%s Allocate err: %s", sp.PluginName, err.Error())
 		return err
 	}
 	selectedXPUs := ""
@@ -321,7 +321,7 @@ func (sp *SchedulerPlugin) Allocate(sJob *SchedulerJob, task *api.TaskInfo,
 	if sp.Config.TopologyEnable && !sJob.Tasks[task.UID].IsVXPUTask {
 		selectedXPUs = sp.getTopologySelectXPUs(sJob, task, node, xpuDevices)
 	} else {
-		selectedXPUs = sp.getSlectXPUs(task, xpuDevices)
+		selectedXPUs = sp.getSelectXPUs(task, xpuDevices)
 	}
 	if selectedXPUs == "" {
 		klog.V(util.LogErrorLevel).Infof("%s Allocate failed: no suitable xpus selected.",

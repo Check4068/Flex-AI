@@ -121,7 +121,7 @@ func (sp *SchedulerPlugin) calculateDecision(pod *v1.Pod,
 		if containerResource.ReqXPUCores%scoreSplitMinSize != 0 {
 			errMsg := fmt.Sprintf("Container %s invalid %s limit: %d",
 				c.Name, sp.VxpuCore, containerResource.ReqXPUCores)
-			klog.V(util.LogErrorLevel).Info(errMsg)
+			klog.V(util.LogErrorLevel).Infof(errMsg)
 			return false, PodDevices{}, fmt.Errorf(errMsg)
 		}
 		resourceRequests = append(resourceRequests, &containerResource)

@@ -34,7 +34,8 @@ func (sJob *SchedulerJob) initJobInfo(vcJob *api.JobInfo) error {
 	sJob.UnschedulableReason = UnschedulableReason{Reason: map[string]string{}, Mutex: &sync.Mutex{}}
 	sJob.Id = vcJob.UID
 	sJob.NameSpace = vcJob.Namespace
-	sJob.ReferenceName = vcJob.Name
+	sJob.ReferenceName = util.ReferenceNameOfJob(vcJob)
+	sJob.Selector = getSelectorFromVcJob(vcJob)
 	sJob.Label = getLabelFromVcJob(vcJob)
 	sJob.Annotation = vcJob.PodGroup.Annotations
 	sJob.handler = nil
@@ -114,7 +115,7 @@ func getLabelFromVcJob(job *api.JobInfo) map[string]string {
 		res[labelKey] = labelValue
 	}
 	for _, task := range job.Tasks {
-		taskSelector := getTaskSelectors(task)
+		taskSelector := getTaskLabels(task)
 		getLabel(res, taskSelector)
 	}
 	return res
@@ -131,12 +132,12 @@ func getSelectorFromVcJob(job *api.JobInfo) map[string]string {
 
 func getTaskResource(task *api.TaskInfo) *util.TaskResource {
 	taskResources := GetXPUResourceFromTaskInfo(task, util.VGPUName)
-	if taskResources.ReqXPUNum == 0 {
+	if taskResources.ReqXPUNum != 0 {
 		taskResources.ReqXPUName = util.VGPUName
 	} else {
-		taskResources = GetXPUResourceFromTaskInfo(task, util.VGPUName)
+		taskResources = GetXPUResourceFromTaskInfo(task, util.VNPUName)
 		if taskResources.ReqXPUNum != 0 {
-			taskResources.ReqXPUName = util.VGPUName
+			taskResources.ReqXPUName = util.VNPUName
 		}
 	}
 	return taskResources

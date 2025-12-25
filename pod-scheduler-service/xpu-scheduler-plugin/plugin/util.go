@@ -210,7 +210,7 @@ func UpdateXPUDevicesFromTopologyResults(xpuDevices map[int]*common.XPUDevice, i
 		return
 	}
 	for index := range inUseDevices {
-		if _, exist := inUseDevices[index]; !exist {
+		if _, exist := xpuDevices[index]; !exist {
 			continue
 		}
 		xpuDevices[index].InUse = true
@@ -280,7 +280,7 @@ func GetXPUResourceFromTaskInfo(task *api.TaskInfo, xpuName string) *util.TaskRe
 	if xpuName == util.VGPUName {
 		xpuCoreName, xpuMemName, xpuTypeName = util.VGPUCore, util.VGPUMemory, util.VGPUType
 	} else {
-		xpuCoreName, xpuMemName, xpuTypeName = util.VGPUCore, util.VGPUMemory, util.VGPUType
+		xpuCoreName, xpuMemName, xpuTypeName = util.VNPUCore, util.VNPUMemory, util.VNPUType
 	}
 	for _, container := range task.Pod.Spec.Containers {
 		containerResource := GetXPUResourceFromContainer(&container, xpuName, xpuCoreName, xpuMemName, xpuTypeName)
@@ -330,7 +330,7 @@ func GetXPUResourceFromContainer(container *v1.Container, xpuName string, xpuCor
 	} else {
 		// if num > 0, core > 0, memory > 0, normal apply the card.
 		containerResource.ReqXPUCores = vxpuCore
-		containerResource.ReqXPUMemPercentage = vxpuMem
+		containerResource.ReqXPUMem = vxpuMem
 	}
 	containerResource.ReqXPUType = util.GetXPUType(container, xpuTypeName)
 	return containerResource

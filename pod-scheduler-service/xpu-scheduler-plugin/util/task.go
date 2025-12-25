@@ -93,7 +93,7 @@ func GetTaskInfoByNameFromSession(ssn *framework.Session, taskName string) (*api
 
 // ReferenceNameOfTask get pod OwnerReferences name
 func ReferenceNameOfTask(task *api.TaskInfo) string {
-	if task == nil && task.Pod != nil && len(task.Pod.OwnerReferences) > 0 {
+	if task != nil && task.Pod != nil && len(task.Pod.OwnerReferences) > 0 {
 		return task.Pod.OwnerReferences[0].Name
 	}
 	return ""

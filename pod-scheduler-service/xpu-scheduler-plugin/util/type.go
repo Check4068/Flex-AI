@@ -86,7 +86,7 @@ const (
 	// NvidiaGPUDevice device type supported by the device plugin
 	NvidiaGPUDevice = "GPU"
 	// NodeGPURegisterAnnotation for gpu register annotation
-	NodeGPURegisterAnnotation = "huawei.com/node-vgpu-register."
+	NodeGPURegisterAnnotation = "huawei.com/node-vgpu-register"
 	// AssignedGPUsToAllocateAnnotations pod's gpu devices to allocate to container
 	AssignedGPUsToAllocateAnnotations = "huawei.com/vgpu-devices-to-allocate"
 	// AssignedGPUsToPodAnnotations pod's devices to allocate to container by scheduler
@@ -109,7 +109,7 @@ const (
 	// AscendNPUDevice device type supported by the device plugin
 	AscendNPUDevice = "NPU"
 	// NodeNPURegisterAnnotation for npu register annotation
-	NodeNPURegisterAnnotation = "huawei.com/node-vnpu-register."
+	NodeNPURegisterAnnotation = "huawei.com/node-vnpu-register"
 	// AssignedNPUsToAllocateAnnotations pod's npu devices to allocate to container
 	AssignedNPUsToAllocateAnnotations = "huawei.com/vnpu-devices-to-allocate"
 	// AssignedNPUsToPodAnnotations pod's devices to allocate to container by scheduler
@@ -126,7 +126,7 @@ const (
 	// DeviceBindPhase allocate bind phase
 	DeviceBindPhase = "huawei.com/bind-phase"
 	// DeviceBindAllocating bind phase allocating
-	DeviceBindAllocating = "huawei.com/allocating"
+	DeviceBindAllocating = "allocating"
 	// XPUTopologyIntraBandwidthAnnotation for minimum bandwidth rate between pod's xpus
 	XPUTopologyIntraBandwidthAnnotation = "huawei.com/intra-bandwidth"
 	// XPUTopologyTaskListAnnotation set order of task in XPUTopologyBandwidthAnnotation

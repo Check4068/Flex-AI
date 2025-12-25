@@ -40,7 +40,7 @@ func (sh ScheduleHandler) XPUAllocateFunc(task *api.TaskInfo, ssn *framework.Ses
 	}
 	sJob, ok := sh.Jobs[task.Job]
 	if !ok {
-		klog.V(util.LogErrorLevel).Infof("XPUAllocateFunc %s not req npu.", task.Name)
+		klog.V(util.LogDebugLevel).Infof("XPUAllocateFunc %s not req npu.", task.Name)
 		return
 	}
 	if !sh.IsTaskNeedXPUAllocated(sJob, task) {
@@ -53,7 +53,7 @@ func (sh ScheduleHandler) XPUAllocateFunc(task *api.TaskInfo, ssn *framework.Ses
 	nodeName := task.NodeName
 	node, found := ssn.Nodes[nodeName]
 	if !found {
-		klog.V(util.LogErrorLevel).Infof("%s XPUAllocateFunc %s not exist.", PluginName, nodeName)
+		klog.V(util.LogWarningLevel).Infof("%s XPUAllocateFunc %s not exist.", PluginName, nodeName)
 		return
 	}
 

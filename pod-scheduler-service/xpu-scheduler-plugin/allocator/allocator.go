@@ -58,7 +58,7 @@ func tryMakePodAllocation(allocations []nodeAllocation) (bool, []PodAllocation, 
 
 func allCombinationOfNodeAllocation(nodes []NodeResource, pods []PodCardRequest) []nodeAssignment {
 	result := make([]nodeAssignment, 0, len(nodes))
-	generateAllCombinations(len(nodes), len(pods), 0, make(nodeAssignment, len(pods)), &result)
+	generateAllCombinations(len(nodes), len(pods), 0, make(nodeAssignment, len(nodes)), &result)
 	return result
 }
 
@@ -81,7 +81,7 @@ func generateAllCombinations(nodeCnt int, podCnt int, idx int, contents nodeAssi
 func cloneNodeAssignment(contents nodeAssignment) nodeAssignment {
 	duplicate := make(nodeAssignment, len(contents))
 	for i := range contents {
-		duplicate[i] = append([]int{}, contents[i]...)
+		duplicate[i] = make([]int, len(contents[i]))
 		copy(duplicate[i], contents[i])
 	}
 	return duplicate
@@ -262,7 +262,7 @@ func goodPodAllocation(deviceIds [][]int, node NodeResource, podRequests []PodCa
 		}
 		for _, id := range deviceIds[i] {
 			if device, ok := node.UnuseDevices[id]; !ok ||
-				len(podRequests[i].CardType) != 0 && device.Type != podRequests[i].CardType {
+				(len(podRequests[i].CardType) != 0 && device.Type != podRequests[i].CardType) {
 				return false, nil
 			}
 		}
@@ -280,8 +280,8 @@ func checkTopology(topology [][]int, xpuIds []int, podRequest PodCardRequest) bo
 	for i := 0; i < len(xpuIds)-1; i++ {
 		for j := i + 1; j < len(xpuIds); j++ {
 			var (
-				row = 0
-				col = 0
+				row int = 0
+				col int = 0
 			)
 			if i < len(xpuIds) {
 				row = xpuIds[i]

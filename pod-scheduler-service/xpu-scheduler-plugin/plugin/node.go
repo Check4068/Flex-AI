@@ -14,35 +14,24 @@ func (sh *ScheduleHandler) initXPUDevicesOfNode(sJob *SchedulerJob, node *api.No
 	sh.Unlock()
 }
 
-func (sh *ScheduleHandler) NodePredicate(task *api.TaskInfo, node *api.NodeInfo) ([]*api.Status, error) {
+func (sh *ScheduleHandler) NodePredicate(task *api.TaskInfo, node *api.NodeInfo) error {
 	if sh == nil || task == nil || node == nil {
-		return nil, fmt.Errorf("invalid input")
+		return fmt.Errorf("invalid input")
 	}
-	predicateStatus := make([]*api.Status, 0)
 	sJob, ok := sh.Jobs[task.Job]
 	if !ok {
-		return predicateStatus, nil
+		return nil
 	}
 	if !util.IsXPUName(sJob.ReqXPUName) || !IsXPUTask(sJob, task) {
-		return predicateStatus, nil
+		return nil
 	}
 	if err := sJob.preCheckNodePredicate(task, node); err != nil {
-		checkStatus := &api.Status{
-			Code:   api.Unschedulable,
-			Reason: err.Error(),
-		}
-		predicateStatus = append(predicateStatus, checkStatus)
-		return predicateStatus, err
+		return err
 	}
 
-	code, err := sJob.handler.NodePredicateForTask(sJob, task, node, sh)
+	err := sJob.handler.NodePredicateForTask(sJob, task, node, sh)
 	if err != nil {
-		checkStatus := &api.Status{
-			Code:   code,
-			Reason: err.Error(),
-		}
-		predicateStatus = append(predicateStatus, checkStatus)
-		return predicateStatus, err
+		return err
 	}
-	return predicateStatus, nil
+	return nil
 }

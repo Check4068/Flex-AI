@@ -121,14 +121,14 @@ func addJobValidFn(ssn *framework.Session, xp *huaweiXPUPlugin) {
 
 func addPredicateFn(ssn *framework.Session, xp *huaweiXPUPlugin) {
 	// if node not meet the task require, the task will be failed. so need to intercept in advance
-	ssn.AddPredicateFn(xp.Name(), func(taskInfo *api.TaskInfo, nodeInfo *api.NodeInfo) ([]*api.Status, error) {
-		predicateStatus, err := xp.Scheduler.NodePredicate(taskInfo, nodeInfo)
+	ssn.AddPredicateFn(xp.Name(), func(taskInfo *api.TaskInfo, nodeInfo *api.NodeInfo) error {
+		err := xp.Scheduler.NodePredicate(taskInfo, nodeInfo)
 		if err != nil {
 			xp.Scheduler.Jobs[taskInfo.Job].Lock()
 			xp.Scheduler.Jobs[taskInfo.Job].Reason[err.Error()] += nodeInfo.Name + " "
 			xp.Scheduler.Jobs[taskInfo.Job].Unlock()
 		}
-		return predicateStatus, err
+		return err
 	})
 }
 

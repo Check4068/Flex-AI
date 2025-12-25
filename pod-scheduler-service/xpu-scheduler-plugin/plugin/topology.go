@@ -54,7 +54,7 @@ func GetXPUTopologyInterBandwidth(sJob *SchedulerJob) map[string]map[string]int 
 	}
 	taskList := strings.Split(taskStr, util.Comma)
 	if interBandwidth, ok := sJob.Annotation[util.XPUTopologyInterBandwidthAnnotation]; ok {
-		matrix := strings.Split(interBandwidth, util.Comma)
+		matrix := strings.Split(interBandwidth, util.Semicolon)
 		if len(taskList) != len(matrix) {
 			klog.V(util.LogErrorLevel).Infof("job %s interBandwidth length is different from task list",
 				sJob.ReferenceName)
@@ -76,7 +76,7 @@ func GetXPUTopologyInterBandwidth(sJob *SchedulerJob) map[string]map[string]int 
 // GetXPUTopologyIntraBandwidth get xpu topology intraBandwidth if configured
 func GetXPUTopologyIntraBandwidth(pod *v1.Pod) int {
 	for _, c := range pod.Spec.Containers {
-		resourceNum, ok := c.Resources.Limits[v1.ResourceName(util.XPUTopologyInterBandwidthAnnotation)]
+		resourceNum, ok := c.Resources.Limits[v1.ResourceName(util.XPUTopologyIntraBandwidthAnnotation)]
 		if ok {
 			return int(resourceNum.Value())
 		}
