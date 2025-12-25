@@ -51,7 +51,7 @@ const (
 	DeviceType            = "GPU"
 	AssignedIDs           = "huawei.com/vgpu-ids-new"
 	AssignedIDsToAllocate = "huawei.com/vgpu-devices-to-allocate"
-	NodeVXPUHandshake     = "huawei.com/node-vxpu-handshake"
+	NodeVXPUHandshake     = "huawei.com/node-vgpu-handshake"
 	NodeVXPURegister      = "huawei.com/node-vgpu-register"
 	NodeVXPUUsed          = "huawei.com/node-vgpu-used"
 	// AssignedNode assigned node name
@@ -180,15 +180,15 @@ func GetDeviceInfo(devs []*Device) []*types.DeviceInfo {
 	for _, dev := range devs {
 		ndev, ret := gonvml.DeviceGetHandleByUUID(dev.ID)
 		if ret != gonvml.Success {
-			log.Fatalln("get device handle failed, deviceId: %v, ret: %v", dev.ID, ret)
+			log.Fatalln("get device handle failed")
 		}
 		memInfo, ret := ndev.GetMemoryInfoV2()
 		if ret != gonvml.Success {
-			log.Fatalln("get memory info failed, deviceId: %v, ret: %v", dev.ID, ret)
+			log.Fatalln("get memory info failed")
 		}
 		name, ret := ndev.GetName()
 		if ret != gonvml.Success {
-			log.Fatalln("get name failed, deviceId: %v, ret: %v", dev.ID, ret)
+			log.Fatalln("get name failed")
 		}
 		numa, err := getNumaInformation(int(dev.LogicID))
 		if err != nil {
@@ -223,7 +223,7 @@ func resolveDeviceName(deviceName string) string {
 	pattern := `^[A-Z]+[0-9]+[A-Z]*$`
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
-		log.Fatalln("regexp compile failed: %s", err)
+		log.Fatalln("regexp compile failed:", err)
 		return strings.ReplaceAll(deviceName, " ", "")
 	}
 	nameSlice := strings.Split(strings.ReplaceAll(deviceName, " ", "-"), "-")
