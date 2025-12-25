@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "register.h"
 #include "pid_manager.h"
+#include "log.h"
 
 using namespace std;
 using namespace xpu;
@@ -68,11 +69,18 @@ int PidManager::GetContainerPid(int hostPid) {
 
 void PidManager::ProcessEvent(inotify_event *event) {
   if (event->mask & IN_CREATE) {
-    ;
+    log_trace("file created : {}", event->name);
   } else if (event->mask & IN_MODIFY) {
-    ;
+    log_trace("file modified : {}", event->name);
   } else {
     return;
+  }
+  if (string(event->name) == PIDS_CONFIG_NAME) {
+    log_trace("load pids config")
+    int err = Refresh();
+    if (err) {
+      log_err("load pids config failed")
+    }
   }
 }
 

@@ -13,7 +13,7 @@ all: vgpu xpu-client-tool
 
 vgpu:
 	export CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' && \
-	export CGO_CFLAGS="-D_FORTIFY_SOURCE=2 -O2" && \
+	export CGO_CFLAGS='-D_FORTIFY_SOURCE=2 -O2' && \
 	go build \
 		-buildvcs=false \
 		-tags vgpu \
@@ -24,7 +24,7 @@ vgpu:
 
 xpu-client-tool:
 	export CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' && \
-	export CGO_CFLAGS="-D_FORTIFY_SOURCE=2 -O2" && \
+	export CGO_CFLAGS='-D_FORTIFY_SOURCE=2 -O2' && \
 	go build \
 		-tags vgpu \
 		-buildmode=pie \

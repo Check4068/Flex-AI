@@ -69,7 +69,7 @@ func main() {
 	err := updatePidsConfig(cgroupPath)
 	if err != nil {
 		// 请求失败时打印错误并退出进程
-		log.Errorf("get pids failed, cgroupPath：%s", cgroupPath)
+		log.Errorf("get pids failed, cgroupPat:%s", cgroupPath)
 		os.Exit(1)
 	}
 }

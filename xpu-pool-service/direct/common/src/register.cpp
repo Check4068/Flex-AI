@@ -32,10 +32,10 @@ const static int TRY_TIMES = 10;
 void FileOperateErrorHandler(const std::ifstream &file, const string &path)
 {
     if (file.bad()) {
-        log_err("I/O error while reading file {%s}", path);
+        log_err("I/O error while reading file {}", path);
     } else if (file.eof()) {
         log_err("File {} reached the end", path);
-    } else if (!file.fail()) {
+    } else if (file.fail()) {
         log_err("Non-fatal error occurred while opening {}", path);
     } else {
         log_err("Unexpected error occurred while opening {}", path);
@@ -123,10 +123,10 @@ bool IsDangerousCommand(const string& command)
     const string blacklist = "|&;<>/\\`\n\t*?\"'()";
     string::size_type pos = command.find_first_of(blacklist);
     if (pos != string::npos) {
-        log_err("{%s} is dangerous", command);
+        log_err("{} is dangerous", command);
         return true;
     }
-    log_info("{%s} is safe", command);
+    log_info("{} is safe", command);
     return false;
 }
 
@@ -148,9 +148,9 @@ bool CheckCgroupData(const string &groupData)
     const string podIdBasic = "kubepods-pod[a-f0-9_]{36}\\.slice";
     const string containerId = "/(cri-containerd|docker)-[0-9a-f]{64}\\.scope";
     regex patternSystemdQos("^/kubepods\\.slice/kubepods-[a-z]{9,10}\\.slice" + podIdReg + containerId + "$");
-    regex patternSystemdBasic("^/kubepods\\.slice/" + podIdBasic + containerId + "$");
+    regex patternSystemdBasic("^/kubepods\\.slice" + podIdBasic + containerId + "$");
     regex patternGroupsQos("^/(container\\.slice/kubepods|kubepods)/pod[a-f0-9-]{36}/[a-f0-9]{64}$");
-    regex patternGroupsBasic("^/(container\\.slice/kubepods|kubepods)/[a-z]{9-10}/pod[a-f0-9-]{36}/[a-f0-9]{64}$");
+    regex patternGroupsBasic("^/(container\\.slice/kubepods|kubepods)/[a-z]{9,10}/pod[a-f0-9-]{36}/[a-f0-9]{64}$");
 
     if (regex_match(groupData, patternSystemdQos)) {
         log_info("check qos format success: {%s}", groupData);
@@ -177,7 +177,7 @@ int RegisterToDevicePlugin(void)
     string groupData;
     int ret = GetCgroupData(PROC_CGROUP_PATH, groupData);
     if (ret != RET_SUCC) {
-        log_err("get cgroup data failed, ret is {%d}", ret);
+        log_err("get cgroup data failed, ret is {}", ret);
         return ret;
     }
 
@@ -188,7 +188,7 @@ int RegisterToDevicePlugin(void)
             return RET_SUCC;
         }
 #ifndef UNIT_TEST
-        log_info("register with data failed, retry {%d} time", i + 1);
+        log_info("register with data failed, retry {} time", i + 1);
         this_thread::sleep_for(std::chrono::seconds(1));
 #else
         break;

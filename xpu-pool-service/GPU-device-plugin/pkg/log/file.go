@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	backupTimeFormat  = "20060102150405.000"
+	backupTimeFormat  = "20060102T150405.000"
 	compressSuffix    = ".gz"
 	defaultLogPath    = "/var/log"
 	defaultLogMaxSize = 20
@@ -84,7 +84,7 @@ func (l *FileLogger) Write(bytes []byte) (int, error) {
 
 	writtenLen := int64(len(bytes))
 	if writtenLen > l.maxLogContextLen() {
-		return 0, fmt.Errorf("Write(len(bytes)) %d exceeds maximum file writtenLen %d", writtenLen, l.maxLogContextLen())
+		return 0, fmt.Errorf("write length %d exceeds maximum file writtenLen %d", writtenLen, l.maxLogContextLen())
 	}
 
 	if l.file == nil {
@@ -152,15 +152,15 @@ func (l *FileLogger) openNew() error {
 
 	name := l.filename()
 	info, err := os.Stat(name)
-	if err != nil {
-		if _, err := os.Stat(name); err == nil {
-			if err := os.Rename(name, backupName(name, l.localTime)); err != nil {
-				return fmt.Errorf("can't rename log file: %s", err)
-			}
-			// The permission on archive log files must be 0640
-			if err := os.Chmod(backupName(name, l.localTime), os.FileMode(fileModeUserRoForArchiveLog)); err != nil {
-				return fmt.Errorf("error changing permissions: %s", err)
-			}
+	if err == nil {
+		newName := backupName(name, l.localTime)
+		if err := os.Rename(name, newName); err != nil {
+			return fmt.Errorf("can't rename log file: %s", err)
+		}
+
+		err := os.Chmod(newName, os.FileMode(fileModeUserRoForArchiveLog))
+		if err != nil {
+			return fmt.Errorf("can't chmod log file: %v", err)
 		}
 		if err := createAndChown(name, info); err != nil {
 			return err
@@ -188,13 +188,11 @@ func backupName(name string, local bool) string {
 	fileName := filepath.Base(name)
 	ext := filepath.Ext(fileName)
 	prefix := fileName[:len(fileName)-len(ext)]
-	// No need to add a separator as the time format includes the one.
-	var timestamp string
-	if local {
-		timestamp = time.Now().Format(backupTimeFormat)
-	} else {
-		timestamp = time.Now().UTC().Format(backupTimeFormat)
+	t := currentTime()
+	if !local {
+		t = t.UTC()
 	}
+	timestamp := t.Format(backupTimeFormat)
 	return filepath.Join(dir, fmt.Sprintf("%s-%s%s", prefix, timestamp, ext))
 }
 
@@ -202,8 +200,9 @@ func backupName(name string, local bool) string {
 // would not put it over maxSize.  If there is no such file or write would
 // put it over the maxSize, the file is renamed and a new logfile created.
 func (l *FileLogger) openExistingOrNew(writeLen int) error {
-	l.fileName = l.filename()
-	info, err := os.Stat(l.fileName)
+	l.postRotateCompressLog()
+	filename := l.filename()
+	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return l.openNew()
 	}
@@ -215,7 +214,7 @@ func (l *FileLogger) openExistingOrNew(writeLen int) error {
 		return l.rotate()
 	}
 
-	file, err := os.OpenFile(l.fileName, os.O_APPEND|os.O_WRONLY, os.FileMode(fileModeUserRwForWritingLog))
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, os.FileMode(fileModeUserRwForWritingLog))
 	if err != nil {
 		// if we fail to open the old log file for some reason, just ignore
 		// it and open a new log file.
@@ -244,12 +243,12 @@ func (l *FileLogger) handleStaleLogRunOnce() error {
 
 	files, err := l.oldLogFiles()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	preserved := make(map[string]bool)
 	cutoff := time.Now().Add(-time.Duration(l.maxAge) * hourPerDay * time.Hour)
-	var toRemove, toCompress []logInfo
+	var toCompress, toRemove []logInfo
 	for _, f := range files {
 		baseName := f.Name()
 		isCompressed := strings.HasSuffix(baseName, compressSuffix)
@@ -271,8 +270,8 @@ func (l *FileLogger) handleStaleLogRunOnce() error {
 
 	// Remove files toRemove
 	for _, f := range toRemove {
-		if err := os.Remove(filepath.Join(l.dir(), f.Name())); err != nil {
-			return err
+		if errRemove := os.Remove(filepath.Join(l.dir(), f.Name())); errRemove != nil {
+			err = errRemove
 		}
 	}
 
@@ -280,7 +279,7 @@ func (l *FileLogger) handleStaleLogRunOnce() error {
 	for _, f := range toCompress {
 		fn := filepath.Join(l.dir(), f.Name())
 		if errCompress := compressLogFile(fn, fn+compressSuffix); errCompress != nil {
-			return errCompress
+			err = errCompress
 		}
 	}
 	return err
@@ -308,7 +307,7 @@ func (l *FileLogger) postRotateCompressLog() {
 
 // oldLogFiles returns the list of backup log files stored in the same directory, sorted by ModTime
 func (l *FileLogger) oldLogFiles() ([]logInfo, error) {
-	l.mutex.Unlock()
+	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
 	files, err := os.ReadDir(l.dir())
@@ -353,8 +352,8 @@ func (l *FileLogger) extractTimeFromFileName(filename, prefix, ext string) (time
 
 // maxLogContextLen returns the maximum writtenLen in bytes of log files before rolling.
 func (l *FileLogger) maxLogContextLen() int64 {
-	if l.maxSize <= 0 {
-		return int64(defaultMaxSize) * int64(megabyte)
+	if l.maxSize == 0 {
+		return int64(defaultMaxSize * megabyte)
 	}
 	return int64(l.maxSize) * int64(megabyte)
 }
@@ -366,7 +365,7 @@ func (l *FileLogger) dir() string {
 
 // getLogFilePrefixAndExt returns the filename part and extension part from the FileLogger's filename.
 func (l *FileLogger) getLogFilePrefixAndExt() (prefix, ext string) {
-	filename := l.filename()
+	filename := filepath.Base(l.filename())
 	ext = filepath.Ext(filename)
 	prefix = filename[:len(filename)-len(ext)] + "-"
 	return prefix, ext
@@ -394,7 +393,7 @@ func createAndChown(name string, info os.FileInfo) error {
 }
 
 // compressLogFile compresses the given log file and removing src log file if successful.
-func compressLogFile(src, dst string) error {
+func compressLogFile(src, dst string) (err error) {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("open log file failed: %v", err)
@@ -406,7 +405,6 @@ func compressLogFile(src, dst string) error {
 		return fmt.Errorf("stat log file failed: %v", err)
 	}
 
-	dst = src + compressSuffix
 	if err := createAndChown(dst, srcFileInfo); err != nil {
 		return fmt.Errorf("create compressed log file failed: %v", err)
 	}
@@ -415,21 +413,23 @@ func compressLogFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("open compressed log file failed: %v", err)
 	}
+	defer gzWriter.Close()
+
+	gzFile := gzip.NewWriter(gzWriter)
 	defer func() {
 		if err != nil {
-			if errRemove := os.Remove(dst); errRemove != nil {
-				err = fmt.Errorf("compress log file failed: %v, Remove %s failed too", err, dst)
+			if errRemove := os.Remove(dst); errRemove == nil {
+				err = fmt.Errorf("compress log file failed: %v", err)
+			} else {
+				err = fmt.Errorf("remove log file failed: %v", err)
 			}
 		}
 	}()
 
-	gzfile := gzip.NewWriter(gzWriter)
-	defer gzfile.Close()
-
-	if _, err := io.Copy(gzfile, srcFile); err != nil {
+	if _, err := io.Copy(gzFile, srcFile); err != nil {
 		return err
 	}
-	if err := gzfile.Close(); err != nil {
+	if err := gzFile.Close(); err != nil {
 		return err
 	}
 	if err := gzWriter.Close(); err != nil {
@@ -461,7 +461,7 @@ func (b logInfoWithTimestamp) Less(i, j int) bool {
 }
 
 func (b logInfoWithTimestamp) Swap(i, j int) {
-	if len(b) == 0 || i >= b.Len() || j >= b.Len() {
+	if i >= b.Len() || j >= b.Len() {
 		return
 	}
 	b[i], b[j] = b[j], b[i]

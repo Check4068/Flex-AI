@@ -56,7 +56,7 @@ elif [ ! -f ${cuda_backup_path} ]; then
     && install -m 400 "${cuda_file}" "${cuda_backup_path}" \
     && install -m 400 "${cuda_file}" "${cuda_container_backup_path}" \
     && install -m 555 "${root_direct_path}" "${cuda_file}" \
-    && echo "client file initialization completed" || echo "client file initialization failed"
+    && echo "client file initialization completed" || (echo "client file initialization failed" || exit 1)
 else
   # 已初始化过：更新容器内的备份文件
   install -m 400 "${cuda_backup_path}" "${cuda_container_backup_path}" \

@@ -338,7 +338,7 @@ func GetNextDeviceRequest(dtype string, p v1.Pod) (v1.Container, types.Container
 			if idx != -1 {
 				return p.Spec.Containers[idx], res, nil
 			} else {
-				log.Errorf("get container idx by vxpuIdx failed, vxpuIdx: %v", vxpuIdx)
+				log.Errorf("get container idx by vxpuIdx failed, vxpuIdx: %d", vxpuIdx)
 			}
 			break
 		}
@@ -438,8 +438,7 @@ func PatchNodeAnnotations(nodeName string, annotations map[string]string) error 
 		nodeName,
 		k8stypes.StrategicMergePatchType,
 		bytes,
-		metav1.PatchOptions{},
-	)
+		metav1.PatchOptions{})
 	if err != nil {
 		log.Infof("patch node %s failed, %v", nodeName, err)
 	}
@@ -467,7 +466,7 @@ func PatchPodAnnotations(pod *v1.Pod, annotations map[string]string) error {
 		bytes,
 		metav1.PatchOptions{})
 	if err != nil {
-		log.Infof("patch pod %s failed: %v", pod.Name, err)
+		log.Infof("patch pod %v failed: %v", pod.Name, err)
 	}
 	return err
 }
@@ -517,9 +516,8 @@ func GetVxpus() (types.VxpuDevices, map[string][]uint32, error) {
 	for _, pod := range podList.Items {
 		if pod.Status.Phase != v1.PodRunning || len(pod.Status.ContainerStatuses) == 0 {
 			errMsg := fmt.Sprintf(
-				"pod status error:, %v, container status len: %v, %d",
-				pod.UID, pod.Status.Phase,
-				len(pod.Status.ContainerStatuses))
+				"pod status error: %v, container status len: %d",
+				pod.Status.Phase, len(pod.Status.ContainerStatuses))
 			log.Errorf(errMsg)
 			continue
 		}

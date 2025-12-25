@@ -31,9 +31,10 @@ const (
 func getUptime() (string, error) {
 	uptimeFileBytes, err := os.ReadFile(uptimeFilePath)
 	if err != nil {
-		return "", fmt.Errorf("Failed to read /proc/uptime, error: %v", err)
+		return "", err
 	}
-	return strings.Fields(string(uptimeFileBytes))[0], nil
+	eles := strings.Fields(string(uptimeFileBytes))
+	return eles[0], nil
 }
 
 var kubeClient kubernetes.Interface
@@ -58,14 +59,13 @@ func NewClient() error {
 	}
 	client, err := kubernetes.NewForConfig(config)
 	kubeClient = client
-	return nil
+	return err
 }
 
 func setNodeLock(nodeName string, lockName string) error {
 	ctx := context.Background()
 	node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, v1.GetOptions{})
 	if err != nil {
-		log.Errorf("get node failed: %v", err.Error())
 		return err
 	}
 	if lockName == "" {
@@ -82,7 +82,6 @@ func setNodeLock(nodeName string, lockName string) error {
 	newNode.ObjectMeta.Annotations[lockName] = uptime
 	_, err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
 	for i := 1; i <= maxLockRetry && err != nil; i++ {
-		log.Errorf("Failed to update node time: %v, node: %s, retry: %d", err, nodeName, i)
 		time.Sleep(lockRetryInterval * time.Millisecond)
 		node, err = kubeClient.CoreV1().Nodes().Get(ctx, nodeName, v1.GetOptions{})
 		if err != nil {
@@ -118,7 +117,6 @@ func ReleaseNodeLock(nodeName string, lockName string) error {
 	delete(newNode.ObjectMeta.Annotations, lockName)
 	_, err = kubeClient.CoreV1().Nodes().Update(ctx, newNode, v1.UpdateOptions{})
 	for i := 1; i <= maxLockRetry && err != nil; i++ {
-		log.Errorf("Failed to update node time: %v, node: %s, retry: %d", err, nodeName, i)
 		time.Sleep(lockRetryInterval * time.Millisecond)
 		node, err = kubeClient.CoreV1().Nodes().Get(ctx, nodeName, v1.GetOptions{})
 		if err != nil {
@@ -160,9 +158,7 @@ func ObtainLockNode(nodeName string, lockName string) error {
 		log.Errorf("Failed to parse float: %v, strTime: %s", err, uptime)
 		return err
 	}
-	log.Infof("currentTime - lockTime: %f", curTime-lockTime)
 	if curTime-lockTime > lockExpiredInterval {
-		log.Infof("Node lock expired, lockTime: %f", lockTime)
 		err = ReleaseNodeLock(nodeName, lockName)
 		if err != nil {
 			log.Errorf("Failed to release node lock: %v, node: %s", err, nodeName)

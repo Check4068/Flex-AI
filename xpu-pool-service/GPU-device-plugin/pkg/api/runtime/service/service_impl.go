@@ -36,14 +36,14 @@ const (
 	pidsSockPath                  = "/var/lib/xpu/pids.sock"
 	hostProcDir                   = "/hostproc"
 	procStatus                    = "status"
-	nsPid                         = "Nspid:"
+	nsPid                         = "NSpid:"
 	nsPidFieldCount               = 3
 	containerdPodIdPrefix         = "-pod"
 	dockerPodIdPrefix             = "/pod"
 	containerdPodIdSuffix         = ".slice"
 	dockerPodIdSuffix             = "/"
-	containerIdPrefix             = "containerd"
-	containerIdSuffix             = "docker://"
+	containerIdPrefix             = "cri-containerd-"
+	containerIdSuffix             = ".scope"
 	containerIdPrefixInContainerd = "containerd://"
 	containerIdPrefixInDocker     = "docker://"
 	vxpuConfigBaseDir             = "/etc/xpu"
@@ -60,13 +60,12 @@ const (
 
 // PidsServiceServerImpl implementation of pids service
 type PidsServiceServerImpl struct {
-	UnimplementedPidsServiceServer
+	*UnimplementedPidsServiceServer
 }
 
 func readProcsFile(file string) ([]int, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		klog.Error("can't read %s: %s", file, err.Error())
 		return nil, err
 	}
 	defer f.Close()
@@ -80,14 +79,12 @@ func readProcsFile(file string) ([]int, error) {
 		}
 	}
 
-	klog.Infof("read from %s, pids: %v", file, pids)
 	return pids, nil
 }
 
 func readStatusFile(file string) (string, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		klog.Error("can't read %s", file, err.Error())
 		return "", err
 	}
 	defer f.Close()
@@ -100,8 +97,7 @@ func readStatusFile(file string) (string, error) {
 			if len(eles) != nsPidFieldCount {
 				return "", errors.New("NpPid field count error")
 			}
-			pids := fmt.Sprintf("%s %s", eles[1], eles[2])
-			klog.Infof("read from %s, pids: %s", file, pids)
+			pids := fmt.Sprintf("%-11s %-11s", eles[1], eles[2])
 			return pids, nil
 		}
 	}
@@ -133,9 +129,9 @@ func parseDockerCgroupPath(cgroupPath string) (string, string, error) {
 		return "", "", errors.New("pod id suffix not found")
 	}
 	podId := podIdTmp[:idx]
-	podId = strings.Replace(podId, ".", "-", -1)
-	containerIdTmp := podIdTmp[idx+len(dockerPodIdSuffix):]
-	containerId := containerIdTmp
+	podId = strings.Replace(podId, "_", "-", -1)
+
+	containerId := podIdTmp[idx+len(dockerPodIdSuffix):]
 	return podId, containerId, nil
 }
 
@@ -145,12 +141,12 @@ func parseCgroupPath(cgroupPath string) (string, string, error) {
 		return parseDockerCgroupPath(cgroupPath)
 	}
 	podIdTmp := cgroupPath[idx+len(containerdPodIdPrefix):]
-	idx = strings.Index(podIdTmp, dockerPodIdPrefix)
+	idx = strings.Index(podIdTmp, containerdPodIdSuffix)
 	if idx == -1 {
 		return "", "", errors.New("pod id suffix not found")
 	}
 	podId := podIdTmp[:idx]
-	podId = strings.Replace(podId, ".", "-", -1)
+	podId = strings.Replace(podId, "_", "-", -1)
 	idx = strings.Index(cgroupPath, containerIdPrefix)
 	if idx == -1 {
 		return podId, "", errors.New("container id prefix not found")
@@ -176,7 +172,7 @@ func getContainerName(cgroupPath string) (string, string, error) {
 			FieldSelector: selector.String(),
 		})
 	if err != nil {
-		return "", "", err
+		return podId, "", err
 	}
 	for _, pod := range podList.Items {
 		if string(pod.UID) != podId {
@@ -232,7 +228,7 @@ func writePidsConfig(pidsConfigPath, pidMaps string) error {
 	w := bufio.NewWriter(f)
 	pids := strings.Split(pidMaps, ",")
 	for _, pid := range pids {
-		_, err := w.WriteString(pid + "\n")
+		_, err = w.WriteString(pid + "\n")
 		if err != nil {
 			return err
 		}
@@ -246,7 +242,7 @@ func getPodDirNames() ([]string, error) {
 		if err != nil {
 			return err
 		}
-		if info == nil || info.IsDir() || path == vxpuConfigBaseDir {
+		if info == nil || !info.IsDir() || path == vxpuConfigBaseDir {
 			return nil
 		}
 		dirNames = append(dirNames, info.Name())
@@ -337,6 +333,7 @@ func setVxpuDevices(vxpuDevices types.VxpuDevices,
 
 		processUsage, ok := uidToProcessMap[v.GpuId]
 		if !ok {
+			xpuDevices[v.GpuId].VxpuDeviceList = append(xpuDevices[v.GpuId].VxpuDeviceList, v)
 			continue
 		}
 
@@ -350,10 +347,8 @@ func setVxpuDevices(vxpuDevices types.VxpuDevices,
 		v.VxpuMemoryUsed = v.VxpuMemoryUsed / 1024 / 1024
 		if xpuDevices[v.GpuId].MemoryTotal != 0 {
 			vxpuMemoryUtil := float64(v.VxpuMemoryUsed*percentage) / float64(xpuDevices[v.GpuId].MemoryTotal)
-			vxpuMemoryUtil, err := strconv.ParseFloat(fmt.Sprintf("%.2f", vxpuMemoryUtil), float64BitsSize)
-			if err != nil {
-				v.VxpuMemoryUtilization = vxpuMemoryUtil
-			}
+			vxpuMemoryUtil, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", vxpuMemoryUtil), float64BitsSize)
+			v.VxpuMemoryUtilization = vxpuMemoryUtil
 		}
 		xpuDevices[v.GpuId].VxpuDeviceList = append(xpuDevices[v.GpuId].VxpuDeviceList, v)
 	}
