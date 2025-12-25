@@ -37,6 +37,7 @@ const (
 
 // DevicePlugin implements the Kubernetes device plugin API
 type DevicePlugin struct {
+	*v1beta1.UnimplementedDevicePluginServer
 	deviceCache  *DeviceCache
 	resourceName string
 	socket       string
@@ -349,8 +350,8 @@ func (m *DevicePlugin) Allocate(ctx context.Context, reqs *v1beta1.AllocateReque
 			return &v1beta1.AllocateResponse{}, err
 		}
 		log.Infoln("deviceAllocateFromAnnotation=", devReq)
-		if len(devReq) != len(reqs.ContainerRequests[idx].DevicesIDs) {
-			log.Errorln("device number not matched", devReq, reqs.ContainerRequests[idx].DevicesIDs)
+		if len(devReq) != len(reqs.ContainerRequests[idx].DevicesIds) {
+			log.Errorln("device number not matched", devReq, reqs.ContainerRequests[idx].DevicesIds)
 			util.PodAllocationFailed(nodename, current)
 			return &v1beta1.AllocateResponse{}, errors.New("device number not matched")
 		}
@@ -416,3 +417,4 @@ func (m *DevicePlugin) apiDevices() []*v1beta1.Device {
 	}
 	return res
 }
+
