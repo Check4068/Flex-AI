@@ -15,7 +15,7 @@ rules:
       - watch
       - update
       - patch
-    apiGroups:
+  - apiGroups:
       - ""
     resources:
       - nodes/status
