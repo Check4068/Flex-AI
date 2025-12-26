@@ -51,4 +51,14 @@ spec:
           path: /opt/xpu
       - name: usr-lib64
         hostPath:
-          path: /usr/lib64
+          path: {{ if eq .Values.osType "centos" -}}
+                  {{ .Values.cudaPath.centos }}
+                {{- else if eq .Values.osType "ubuntu" }}
+                  {{ .Values.cudaPath.ubuntu }}
+                {{- else if eq .Values.osType "rhel" }}
+                  {{ .Values.cudaPath.rhel }}
+                {{- else if eq .Values.osType "debian" }}
+                  {{ .Values.cudaPath.debian }}
+                {{- else }}
+                  {{ .Values.cudaPath.centos }}
+                {{- end }}
