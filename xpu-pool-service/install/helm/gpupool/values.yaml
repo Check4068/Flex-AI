@@ -57,8 +57,18 @@ imagePullPolicy: IfNotPresent
 updateStrategy:
   type: RollingUpdate
 priorityClassName: "system-node-critical"
+
+# docker/containerd
 runtimeType: "docker"
 runtimeClassName: nvidia
+
+# centos/rhel/ubuntu/debian
+osType: centos
+cudaPath:
+  centos: /usr/lib64
+  rhel: /usr/lib64
+  ubuntu: /usr/lib/x86_64-linux-gnu
+  debian: /usr/lib/x86_64-linux-gnu
 
 deviceSplitCount: 20
 loggingConsole: true
