@@ -36,8 +36,7 @@ spec:
       serviceAccountName: {{ .Values.devicePluginName }}-service-account
       {{- end }}
       containers:
-      - name: NODE_NAME
-        env:
+      - env:
         - name: NODE_NAME
           valueFrom:
             fieldRef:
