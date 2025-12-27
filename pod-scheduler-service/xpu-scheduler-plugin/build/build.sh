@@ -34,7 +34,7 @@ function build() {
     CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv" \
        CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv" \
     CC=${GCC_PATH} CGO_ENABLED=1 \
-    go build -mod=mod -buildmode=pie -ldflags "-s -linkmode=external -extldflags=-Wl,-z,relro,-z,now
+    go build -mod=mod -buildmode=pie -buildvcs=false -ldflags "-s -linkmode=external -extldflags=-Wl,-z,relro,-z,now
     -X  '${PKG_PATH}/version.Built=${DATE}' -X '${PKG_PATH}/version.Version=${BASE_VERSION}'" \
     -o vc-$name "${CMD_PATH}"/$name
   done
@@ -42,7 +42,7 @@ function build() {
   CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv" \
   CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv" \
   CC=${GCC_PATH} CGO_ENABLED=1 \
-  go build -mod=mod -buildmode=plugin -ldflags "-s -linkmode=external -extldflags=-Wl,-z,relro,-z,now
+  go build -mod=mod -buildmode=plugin -buildvcs=false -ldflags "-s -linkmode=external -extldflags=-Wl,-z,relro,-z,now
   -X volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin.PluginName=${PLUGIN_NAME}" \
   -o "${PLUGIN_NAME}".so "${GOPATH}"/src/volcano.sh/volcano/pkg/scheduler/plugins/xpu-scheduler-plugin/
 
